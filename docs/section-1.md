@@ -269,27 +269,22 @@ Configure texture mipmapping and filtering for quality and performance.
 ---
 
 #### Task 3.3: Texture Caching and Reuse
+**Status: Completed**
 **Priority: High**
 **Complexity: Medium**
 
 Implement texture caching to avoid loading duplicate textures.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Maintain cache of loaded textures keyed by URL/filename
-- Reuse texture instances across multiple materials
-- Track texture reference counts for disposal
-- Clear cache when loader resets
-- Support manual cache management
-
-**Test Cases:**
-1. Same texture URL referenced by multiple surfaces loads once
-2. Cache hit/miss metrics verify reuse
-3. Texture disposal doesn't affect other materials using same texture
-4. Cache cleared on loader reset
-5. Memory usage reduced with caching on large scenes
+**Implementation Details:**
+- Implemented `textureCache` map in `TextureManager` to store loaded textures by URL or filename.
+- Refactored `setTextureFromUrl` to check cache before loading.
+- Implemented texture cloning for cached textures to allow independent configuration (wrap mode) while sharing image data.
+- Refactored `setTextureFromFile` to support caching and updating existing textures upon re-upload.
+- Added `_configureTexture` helper method to reduce code duplication.
+- Updated unit tests to verify caching behavior and ensure no regressions.
 
 ---
 
