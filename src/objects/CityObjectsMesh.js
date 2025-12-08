@@ -211,4 +211,24 @@ export class CityObjectsMesh extends Mesh {
 
 	}
 
+	dispose() {
+
+		this.geometry.dispose();
+
+		if ( Array.isArray( this.material ) ) {
+
+			for ( const material of this.material ) {
+
+				material.dispose();
+
+			}
+
+		} else {
+
+			this.material.dispose();
+
+		}
+
+	}
+
 }
