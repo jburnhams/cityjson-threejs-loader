@@ -115,7 +115,8 @@ export class TextureManager {
 		tex.anisotropy = this.options.anisotropy;
 
 		// Handle wrapMode
-		const wrapModeStr = this.cityTextures[ i ].wrapMode || "wrap";
+		const cityTexture = this.cityTextures[ i ];
+		const wrapModeStr = ( cityTexture && cityTexture.wrapMode ) ? cityTexture.wrapMode : "wrap";
 		let wrapMode = RepeatWrapping;
 
 		if ( wrapModeStr === "mirror" ) {
@@ -132,14 +133,14 @@ export class TextureManager {
 		tex.wrapT = wrapMode;
 
 		// Store textureType
-		const textureType = this.cityTextures[ i ].textureType || "unknown";
+		const textureType = ( cityTexture && cityTexture.textureType ) ? cityTexture.textureType : "unknown";
 		tex.userData = tex.userData || {};
 		tex.userData.textureType = textureType;
 
 		// Store formatType
-		if ( this.cityTextures[ i ].type ) {
+		if ( cityTexture && cityTexture.type ) {
 
-			tex.userData.formatType = this.cityTextures[ i ].type;
+			tex.userData.formatType = cityTexture.type;
 
 		}
 
@@ -154,7 +155,7 @@ export class TextureManager {
 		const context = this;
 
 		// Validate image format
-		if ( this.cityTextures[ i ].type ) {
+		if ( this.cityTextures[ i ] && this.cityTextures[ i ].type ) {
 
 			const type = this.cityTextures[ i ].type.toLowerCase();
 			const extension = url.split( '.' ).pop().toLowerCase();
@@ -304,7 +305,7 @@ export class TextureManager {
 		const context = this;
 
 		// Validate image format
-		for ( const [ i, texture ] of this.cityTextures.entries() ) {
+		for ( const [ i, texture ] of this.cityTextures.entries() ) { // eslint-disable-line no-unused-vars
 
 			if ( texture.image.includes( file.name ) ) {
 
