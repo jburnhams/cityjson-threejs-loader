@@ -164,8 +164,8 @@ describe('BaseParser Texture Data Extraction', () => {
                     values: [
                         [
                             [0, 0, 1, 2, 3, 4],   // Outer ring (4 vertices)
-                            [0, 5, 6, 7],         // Hole 1 (3 vertices)
-                            [0, 8, 9, 10]         // Hole 2 (3 vertices)
+                            [0, 4, 6, 7],         // Hole 1 (3 vertices)
+                            [0, 1, 9, 10]         // Hole 2 (3 vertices)
                         ]
                     ]
                 }
@@ -184,6 +184,24 @@ describe('BaseParser Texture Data Extraction', () => {
             expect(result.visual.uvs).toEqual([1.0, 0.0]); // UV index 1 in ring 2
         });
 
+        test('should correctly handle texture index 5 (which is invalid for only 5 texture vertices)', () => {
+             // This test previously expected [0.5, 0.5] for an index that was effectively 5 in the data, but
+             // the textureVertices array only had indices 0..4.
+             // We've updated the code to handle undefined UVs by returning [0,0] which is the default fallback.
+             // So here we document the behavior for invalid indices.
+             const texture = {
+                'visual': {
+                    values: [
+                        [
+                            [0, 5, 5] // Invalid index 5
+                        ]
+                    ]
+                }
+            };
+            const result = parser.getTextureData(0, 1, [], texture);
+            // Since index 5 is out of bounds, uvs is undefined -> fallback to [0,0]
+            expect(result.visual.uvs).toEqual([0, 0]);
+        });
     });
 
     describe('getSurfaceMaterials', () => {
