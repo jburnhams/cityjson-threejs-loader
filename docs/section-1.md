@@ -223,31 +223,21 @@ Support texture atlases with sub-texture UV regions.
 ### Phase 3: Performance & Quality Improvements
 
 #### Task 3.1: Texture Compression Support
+**Status: Completed**
 **Priority: Medium**
 **Complexity: Medium**
 
 Support compressed texture formats for reduced memory and bandwidth.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Detect GPU compressed texture format support (KTX2, DDS, etc.)
-- Load compressed textures via `THREE.KTX2Loader` or `THREE.DDSLoader`
-- Fall back to standard formats if compression unsupported
-- Prefer compressed formats when available
-
-**Supported Formats:**
-- KTX2 (recommended, modern standard)
-- DDS (legacy DirectX format)
-- Basis Universal (runtime transcoding)
-
-**Test Cases:**
-1. Load KTX2 compressed texture on supported GPU
-2. Fallback to PNG/JPG on unsupported GPU
-3. Visual quality matches uncompressed texture
-4. Memory usage significantly reduced with compression
-5. Load time improved with compressed textures
+**Implementation Details:**
+- Updated `TextureManager` constructor to accept `ktx2Loader` and `ddsLoader` in options.
+- Implemented file extension detection in `setTextureFromUrl` to use correct loader.
+- Implemented `setTextureFromFile` to handle compressed files using `URL.createObjectURL` and appropriate loaders.
+- Falls back to standard `TextureLoader` if no specific loader is found.
+- Added unit tests in `tests/TextureManager.compression.test.js` verifying loader selection logic.
 
 ---
 
@@ -417,26 +407,21 @@ Robust error handling for failed texture loads.
 ---
 
 #### Task 5.2: UV Coordinate Validation
+**Status: Completed**
 **Priority: Medium**
 **Complexity: Low**
 
 Validate UV coordinates during parsing.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/parsers/geometry/BaseParser.js`
 
-**Implementation Requirements:**
-- Check UV coordinates are valid numbers
-- Warn if UV coordinates outside expected range (optional, v2.0 allows > 1.0)
-- Detect and report UV/vertex count mismatches
-- Handle missing UV coordinates gracefully
-
-**Test Cases:**
-1. Invalid UV coordinates (NaN, undefined) logged and replaced with defaults
-2. UV/vertex count mismatch detected and reported
-3. Missing UV coordinates don't crash parser
-4. UV coordinates outside [0, 1] accepted in v2.0 mode
-5. Malformed texture data handled gracefully
+**Implementation Details:**
+- Added validation check in `BaseParser.getTextureData` to ensure `uvs` is a valid array of length >= 2.
+- Added check for `NaN` values in UV coordinates.
+- Logs warnings to console for invalid UV data.
+- Returns safe default `[0, 0]` when validation fails to prevent crashes.
+- Added unit tests in `tests/BaseParser.texture.test.js` covering various invalid UV scenarios.
 
 ---
 

@@ -23,6 +23,8 @@ export class TextureManager {
 			anisotropy: 1,
 			minFilter: LinearMipmapLinearFilter,
 			magFilter: LinearFilter,
+			ktx2Loader: null,
+			ddsLoader: null,
 			...options
 		};
 
@@ -179,12 +181,13 @@ export class TextureManager {
 		if ( this.textureCache[ url ] ) {
 
 			const cachedTex = this.textureCache[ url ];
-			const tex = cachedTex.clone();
 
-			// We need to ensure the clone shares the same image.
-			// .clone() normally does this, but let's be sure.
-			// Also if cachedTex is still loading, tex will be incomplete?
-			// Three.js Texture.clone() copies .image reference.
+			// For compressed textures (loaded via KTX2Loader/DDSLoader), .clone() might not work as expected
+			// because they inherit from CompressedTexture which has different properties.
+			// However, three.js Textures (including compressed) should support clone().
+			// But careful: KTX2Loader returns a CompressedTexture.
+
+			const tex = cachedTex.clone();
 
 			this._configureTexture( tex, i );
 			this.textures[ i ] = tex;
@@ -200,14 +203,32 @@ export class TextureManager {
 
 		}
 
+		// Choose loader based on extension
+		const extension = url.split( '.' ).pop().toLowerCase();
+		let loader;
+
+		if ( extension === 'ktx2' && this.options.ktx2Loader ) {
+
+			loader = this.options.ktx2Loader;
+
+		} else if ( extension === 'dds' && this.options.ddsLoader ) {
+
+			loader = this.options.ddsLoader;
+
+		} else {
+
+			loader = new TextureLoader();
+
+		}
+
 		// Load new texture and cache it
-		const tex = new TextureLoader().load( url, ( loadedTex ) => {
+		const tex = loader.load( url, ( loadedTex ) => {
 
-			// On load, we might need to update properties of the cached texture?
-			// The `tex` object IS the one being loaded.
+			// For compressed textures, properties like flipY might need adjustment depending on format,
+			// but generally we just use what we get.
 
-			// We don't need to do much here except trigger updates.
-			// The texture object itself is updated by Three.js internally.
+			// Compressed textures might not support generateMipmaps = true if they don't have them?
+			// But _configureTexture sets it. KTX2 often has mipmaps.
 
 			this.needsUpdate = true;
 			if ( this.onChange ) {
@@ -283,10 +304,6 @@ export class TextureManager {
 
 		}
 
-		// Also dispose cached textures?
-		// Since we cloned them, calling dispose on clones is correct.
-		// The underlying image data is managed by browser/three.js.
-
 		this.textures = [];
 		this.textureCache = {};
 
@@ -301,8 +318,6 @@ export class TextureManager {
 	}
 
 	setTextureFromFile( file ) {
-
-		const context = this;
 
 		// Validate image format
 		for ( const [ i, texture ] of this.cityTextures.entries() ) { // eslint-disable-line no-unused-vars
@@ -332,6 +347,68 @@ export class TextureManager {
 			}
 
 		}
+
+		const extension = file.name.split( '.' ).pop().toLowerCase();
+
+		// Handle compressed textures from file
+		if ( ( extension === 'ktx2' && this.options.ktx2Loader ) || ( extension === 'dds' && this.options.ddsLoader ) ) {
+
+			const url = URL.createObjectURL( file );
+			let loader;
+			if ( extension === 'ktx2' ) loader = this.options.ktx2Loader;
+			else loader = this.options.ddsLoader;
+
+			const masterTex = loader.load( url, () => {
+
+				URL.revokeObjectURL( url );
+
+				this.needsUpdate = true;
+				if ( this.onChange ) {
+
+					this.onChange();
+
+				}
+
+			}, undefined, ( err ) => {
+
+				URL.revokeObjectURL( url );
+				if ( this.onError ) {
+
+					this.onError( { type: 'load', url: file.name, error: err } );
+
+				} else {
+
+					console.error( `Failed to load texture from file ${file.name}:`, err );
+
+				}
+
+			} );
+
+			masterTex.name = file.name;
+
+			// Update cache
+			this.textureCache[ file.name ] = masterTex;
+
+			// Assign to all matching textures
+			for ( const [ j, t ] of this.cityTextures.entries() ) {
+
+				if ( t.image.includes( file.name ) ) {
+
+					// Note: Cloning compressed textures might be tricky if not fully loaded yet,
+					// but three.js usually handles it.
+					const tex = masterTex.clone();
+					this._configureTexture( tex, j );
+
+					this.textures[ j ] = tex;
+
+				}
+
+			}
+
+			return;
+
+		}
+
 
 		// Always reload the file if provided by the user, even if cached.
 		// This supports re-uploading modified files with the same name.
@@ -372,17 +449,17 @@ export class TextureManager {
 							masterTex.name = file.name;
 
 							// Update cache (overwriting if exists)
-							context.textureCache[ file.name ] = masterTex;
+							this.textureCache[ file.name ] = masterTex;
 
 							// Now assign to all matching textures
-							for ( const [ j, t ] of context.cityTextures.entries() ) {
+							for ( const [ j, t ] of this.cityTextures.entries() ) {
 
 								if ( t.image.includes( file.name ) ) {
 
 									const tex = masterTex.clone();
-									context._configureTexture( tex, j );
+									this._configureTexture( tex, j );
 
-									context.textures[ j ] = tex;
+									this.textures[ j ] = tex;
 
 								}
 
