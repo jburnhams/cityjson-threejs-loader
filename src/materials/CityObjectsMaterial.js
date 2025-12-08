@@ -32,6 +32,8 @@ export class CityObjectsMaterial extends CityObjectsBaseMaterial {
 			#ifdef TEXTURE_THEME
 
 				uniform sampler2D cityTexture;
+				uniform vec4 borderColor;
+				uniform int useBorderColor;
 
 				flat in int vTexIndex;
 				varying vec2 vTexUV;
@@ -55,7 +57,16 @@ export class CityObjectsMaterial extends CityObjectsBaseMaterial {
 
 					vec4 tempDiffuseColor = vec4(1.0, 1.0, 1.0, 0.0);
 
-					tempDiffuseColor = texture2D( cityTexture, vTexUV );
+					// Check for border color case (when UVs are outside [0,1])
+					// We use borderColor if useBorderColor is true (1).
+
+					bool outside = vTexUV.x < 0.0 || vTexUV.x > 1.0 || vTexUV.y < 0.0 || vTexUV.y > 1.0;
+
+					if ( outside && useBorderColor == 1 ) {
+						tempDiffuseColor = borderColor;
+					} else {
+						tempDiffuseColor = texture2D( cityTexture, vTexUV );
+					}
 
 					diffuseColor *= tempDiffuseColor;
 

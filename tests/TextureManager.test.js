@@ -1,5 +1,6 @@
 
 import { TextureManager } from '../src/helpers/TextureManager';
+import { CityObjectsMaterial } from '../src/materials/CityObjectsMaterial';
 import * as THREE from 'three';
 
 // Mock Three.js
@@ -12,6 +13,10 @@ jest.mock('three', () => {
             this.encoding = '';
             this.wrapS = 1000;
             this.wrapT = 1000;
+            this.minFilter = 1008; // Default to LinearFilter
+            this.magFilter = 1006; // Default to LinearFilter
+            this.anisotropy = 1;
+            this.generateMipmaps = false; // Default
             this.needsUpdate = false;
         }
     }
@@ -21,6 +26,19 @@ jest.mock('three', () => {
             super();
             this.isDataTexture = true;
             this.image = { width, height, data };
+        }
+    }
+
+    class MockColor {
+        constructor(r, g, b, a) {
+            this.r = r;
+            this.g = g;
+            this.b = b;
+        }
+        setRGB(r, g, b) {
+            this.r = r;
+            this.g = g;
+            this.b = b;
         }
     }
 
@@ -37,6 +55,8 @@ jest.mock('three', () => {
         ...originalModule,
         Texture: MockTexture,
         DataTexture: MockDataTexture,
+        Color: MockColor,
+        Vector4: jest.fn().mockImplementation((x, y, z, w) => ({ x, y, z, w })),
         TextureLoader: jest.fn().mockImplementation(() => {
             return {
                 load: jest.fn((url, onLoad, onProgress, onError) => {
@@ -57,13 +77,24 @@ jest.mock('three', () => {
                 fragmentShader: ''
             }
         },
+        UniformsUtils: {
+             merge: jest.fn((uniforms) => {
+                 let merged = {};
+                 for (let u of uniforms) {
+                     merged = { ...merged, ...u };
+                 }
+                 return merged;
+             })
+        },
         // Ensure constants are available
         RepeatWrapping: 1000,
         ClampToEdgeWrapping: 1001,
         MirroredRepeatWrapping: 1002,
         SRGBColorSpace: 'srgb',
         RGBAFormat: 1023,
-        UnsignedByteType: 1009
+        UnsignedByteType: 1009,
+        LinearFilter: 1006,
+        LinearMipmapLinearFilter: 1008,
     };
 });
 
@@ -74,7 +105,9 @@ jest.mock('../src/materials/CityObjectsMaterial', () => {
             return {
                 dispose: jest.fn(),
                 uniforms: {
-                    cityTexture: { value: null }
+                    cityTexture: { value: null },
+                    borderColor: { value: null },
+                    useBorderColor: { value: 0 }
                 },
                 needsUpdate: false
             };
@@ -268,5 +301,139 @@ describe('TextureManager', () => {
             expect(manager.textures.length).toBe(0);
             expect(manager.materials.length).toBe(0);
         });
+    });
+
+    describe('Mipmapping and Filtering', () => {
+
+        test('should configure mipmaps and filtering correctly with defaults', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', wrapMode: 'wrap' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+            const texture = manager.textures[0];
+
+            expect(texture.generateMipmaps).toBe(true);
+            expect(texture.minFilter).toBe(THREE.LinearMipmapLinearFilter);
+            expect(texture.magFilter).toBe(THREE.LinearFilter);
+            expect(texture.anisotropy).toBe(1);
+        });
+
+        test('should configure anisotropy via options', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', wrapMode: 'wrap' }
+                    ]
+                }
+            };
+
+            const options = { anisotropy: 16 };
+            const manager = new TextureManager(citymodel, options);
+            const texture = manager.textures[0];
+
+            expect(texture.anisotropy).toBe(16);
+        });
+
+        test('should configure filters via options', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', wrapMode: 'wrap' }
+                    ]
+                }
+            };
+
+            const options = {
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter
+            };
+            const manager = new TextureManager(citymodel, options);
+            const texture = manager.textures[0];
+
+            expect(texture.minFilter).toBe(THREE.LinearFilter);
+            expect(texture.magFilter).toBe(THREE.LinearFilter);
+        });
+
+    });
+
+    describe('borderColor Support', () => {
+
+        test('should parse borderColor and pass it to material', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        {
+                            image: 'tex1.png',
+                            wrapMode: 'border',
+                            borderColor: [1.0, 0.5, 0.0, 1.0]
+                        }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            // Trigger material creation
+            const baseMaterial = { objectColors: {}, surfaceColors: {} };
+            manager.getMaterials(baseMaterial);
+
+            const material = manager.materials[0];
+
+            expect(material.uniforms.borderColor).toBeDefined();
+            expect(material.uniforms.borderColor.value).toEqual({ x: 1.0, y: 0.5, z: 0.0, w: 1.0 });
+            expect(material.uniforms.useBorderColor.value).toBe(1);
+        });
+
+        test('should ignore borderColor when wrapMode is not border', () => {
+             const citymodel = {
+                appearance: {
+                    textures: [
+                        {
+                            image: 'tex1.png',
+                            wrapMode: 'wrap',
+                            borderColor: [1.0, 0.0, 0.0, 1.0]
+                        }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+            const baseMaterial = { objectColors: {}, surfaceColors: {} };
+            manager.getMaterials(baseMaterial);
+
+            const material = manager.materials[0];
+
+            expect(material.uniforms.borderColor.value).toBeNull();
+            expect(material.uniforms.useBorderColor.value).toBe(0);
+        });
+
+        test('should handle transparent borderColor', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        {
+                            image: 'tex1.png',
+                            wrapMode: 'border',
+                            borderColor: [0.0, 0.0, 0.0, 0.0]
+                        }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+            const baseMaterial = { objectColors: {}, surfaceColors: {} };
+            manager.getMaterials(baseMaterial);
+
+            const material = manager.materials[0];
+
+            expect(material.uniforms.borderColor.value).toEqual({ x: 0.0, y: 0.0, z: 0.0, w: 0.0 });
+            expect(material.uniforms.useBorderColor.value).toBe(1);
+        });
+
     });
 });

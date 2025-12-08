@@ -1,9 +1,9 @@
-import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace, DataTexture, RGBAFormat, UnsignedByteType } from "three";
+import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace, DataTexture, RGBAFormat, UnsignedByteType, LinearMipmapLinearFilter, LinearFilter, Vector4 } from "three";
 import { CityObjectsMaterial } from "../materials/CityObjectsMaterial";
 
 export class TextureManager {
 
-	constructor( citymodel ) {
+	constructor( citymodel, options = {} ) {
 
 		if ( citymodel.appearance && citymodel.appearance.textures ) {
 
@@ -17,6 +17,13 @@ export class TextureManager {
 
 		this.textures = [];
 		this.materials = [];
+
+		this.options = {
+			anisotropy: 1,
+			minFilter: LinearMipmapLinearFilter,
+			magFilter: LinearFilter,
+			...options
+		};
 
 		this.needsUpdate = false;
 		this.onChange = null;
@@ -55,6 +62,16 @@ export class TextureManager {
 					} );
 
 					mat.uniforms.cityTexture.value = this.textures[ i ];
+
+					// Handle borderColor
+					if ( this.cityTextures[ i ].wrapMode === 'border' && this.cityTextures[ i ].borderColor ) {
+
+						const bc = this.cityTextures[ i ].borderColor;
+						mat.uniforms.borderColor.value = new Vector4( bc[ 0 ], bc[ 1 ], bc[ 2 ], bc[ 3 ] );
+						mat.uniforms.useBorderColor.value = 1;
+
+					}
+
 					mat.needsUpdate = true;
 
 					materials.push( mat );
@@ -94,6 +111,10 @@ export class TextureManager {
 		new TextureLoader().load( url, ( tex => {
 
 			tex.encoding = SRGBColorSpace;
+			tex.generateMipmaps = true;
+			tex.minFilter = this.options.minFilter;
+			tex.magFilter = this.options.magFilter;
+			tex.anisotropy = this.options.anisotropy;
 
 			// Handle wrapMode
 			const wrapModeStr = this.cityTextures[ i ].wrapMode || "wrap";
@@ -221,6 +242,10 @@ export class TextureManager {
 						const tex = new Texture( evt.target );
 
 						tex.encoding = SRGBColorSpace;
+						tex.generateMipmaps = true;
+						tex.minFilter = this.options.minFilter;
+						tex.magFilter = this.options.magFilter;
+						tex.anisotropy = this.options.anisotropy;
 
 						// Handle wrapMode
 						const wrapModeStr = texture.wrapMode || "wrap";
