@@ -102,37 +102,77 @@ export class BaseParser {
 
 			const textureVertices = ( this.json.appearance && this.json.appearance[ 'vertices-texture' ] ) ? this.json.appearance[ 'vertices-texture' ] : [];
 
+			if ( ! Array.isArray( textureVertices ) ) {
+
+				return undefined;
+
+			}
+
 			const pairs = Object.entries( texture ).map( tex => {
 
 				const [ theme, obj ] = tex;
 
-				if ( obj.values && textureVertices.length > 0 ) {
+				if ( obj.values && Array.isArray( obj.values ) && textureVertices.length > 0 ) {
 
 					const activeHoles = holes.filter( v => v <= vertexIndex );
 
 					const ringId = activeHoles.length;
 					const vId = ringId ? vertexIndex - activeHoles[ activeHoles.length - 1 ] : vertexIndex;
 
-					// TODO: This is very delicate
-					if ( surfaceIndex >= obj.values.length ) {
-
+					// Check if surfaceIndex is valid
+					if ( surfaceIndex >= obj.values.length || ! obj.values[ surfaceIndex ] ) {
+						console.warn( `Missing texture values for surface ${surfaceIndex}` );
 						return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
 
 					}
 
 					const data = obj.values[ surfaceIndex ];
 
-					if ( data && data[ ringId ] && data[ ringId ][ vId + 1 ] !== undefined ) {
+					// Check if data structure is valid
+					if ( ! Array.isArray( data ) || ! Array.isArray( data[ 0 ] ) ) {
 
-						if ( data[ 0 ][ 0 ] !== null ) {
+						console.warn( `Invalid texture data structure for surface ${surfaceIndex}` );
+						return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
 
-							const uvs = textureVertices[ data[ ringId ][ vId + 1 ] ];
+					}
 
+					if ( data[ 0 ][ 0 ] !== null ) {
+
+						// Check if ringId is valid
+						if ( ! data[ ringId ] ) {
+
+							console.warn( `Missing texture ring data for ring ${ringId} on surface ${surfaceIndex}` );
+							return [ theme, { index: data[ 0 ][ 0 ], uvs: [ 0, 0 ] } ];
+
+						}
+
+						// Check if vertex index is valid in texture data
+						const uvIndex = data[ ringId ][ vId + 1 ];
+						if ( uvIndex === undefined ) {
+
+							console.warn( `Missing UV index for vertex ${vId} in ring ${ringId} on surface ${surfaceIndex}` );
+							return [ theme, { index: data[ 0 ][ 0 ], uvs: [ 0, 0 ] } ];
+
+						}
+
+						const uvs = textureVertices[ uvIndex ];
+
+						// Validate UVs
+						if ( ! uvs || ! Array.isArray( uvs ) || uvs.some( c => typeof c !== 'number' || isNaN( c ) ) ) {
+
+							// Only warn if UVs are actually invalid (NaN or non-number) or undefined
 							if ( uvs ) {
 
-								return [ theme, { index: data[ 0 ][ 0 ], uvs } ];
+								console.warn( `Invalid UV coordinates at index ${uvIndex}:`, uvs );
+
+							} else {
+
+								// console.warn( `Missing UV coordinates at index ${uvIndex}` );
 
 							}
+							return [ theme, { index: data[ 0 ][ 0 ], uvs: [ 0, 0 ] } ];
+
+						}
 
 						}
 
@@ -143,6 +183,11 @@ export class BaseParser {
 
 				} else {
 
+					if ( obj.values ) {
+
+						console.warn( `Texture values is not an array for theme ${theme}` );
+
+					}
 					return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
 
 				}
