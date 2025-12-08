@@ -66,6 +66,12 @@ export class BaseParser {
 
 	getSurfaceMaterials( idx, material ) {
 
+		if ( ! material ) {
+
+			return {};
+
+		}
+
 		const pairs = Object.entries( material ).map( mat => {
 
 			const [ theme, obj ] = mat;
@@ -92,9 +98,9 @@ export class BaseParser {
 
 	getTextureData( surfaceIndex, vertexIndex, holes, texture ) {
 
-		if ( this.json.appearance && this.json.appearance[ 'vertices-texture' ] ) {
+		if ( texture ) {
 
-			const textureVertices = this.json.appearance[ 'vertices-texture' ];
+			const textureVertices = ( this.json.appearance && this.json.appearance[ 'vertices-texture' ] ) ? this.json.appearance[ 'vertices-texture' ] : [];
 
 			if ( ! Array.isArray( textureVertices ) ) {
 
@@ -106,7 +112,7 @@ export class BaseParser {
 
 				const [ theme, obj ] = tex;
 
-				if ( Array.isArray( obj.values ) ) {
+				if ( obj.values && Array.isArray( obj.values ) && textureVertices.length > 0 ) {
 
 					const activeHoles = holes.filter( v => v <= vertexIndex );
 
@@ -114,8 +120,7 @@ export class BaseParser {
 					const vId = ringId ? vertexIndex - activeHoles[ activeHoles.length - 1 ] : vertexIndex;
 
 					// Check if surfaceIndex is valid
-					if ( ! obj.values[ surfaceIndex ] ) {
-
+					if ( surfaceIndex >= obj.values.length || ! obj.values[ surfaceIndex ] ) {
 						console.warn( `Missing texture values for surface ${surfaceIndex}` );
 						return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
 
@@ -169,7 +174,7 @@ export class BaseParser {
 
 						}
 
-						return [ theme, { index: data[ 0 ][ 0 ], uvs } ];
+						}
 
 					}
 
