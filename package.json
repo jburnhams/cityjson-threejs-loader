@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "start": "parcel example/*.html",
+    "test": "jest",
     "lint": "eslint \"src/**/*.js\"",
     "lint:fix": "eslint \"src/**/*.js\" \"example/**/*.js\" --fix"
   },
@@ -22,7 +23,9 @@
     "three": "^0.165.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
     "@types/three": "^0.165.0",
+    "babel-jest": "^30.2.0",
     "concurrently": "^6.0.0",
     "eslint": "^7.18.0",
     "eslint-config-mdcs": "^5.0.0",
@@ -31,6 +34,7 @@
     "parcel": "^2.9.3",
     "parcel-reporter-static-files-copy": "^1.5.0",
     "regenerator-runtime": "^0.13.9",
-    "static-server": "^2.2.1"
+    "static-server": "^2.2.1",
+    "three": "^0.165.0"
   }
 }

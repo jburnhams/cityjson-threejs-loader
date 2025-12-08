@@ -1,4 +1,4 @@
-import { Texture, ShaderLib, RepeatWrapping, TextureLoader, SRGBColorSpace } from "three";
+import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace } from "three";
 import { CityObjectsMaterial } from "../materials/CityObjectsMaterial";
 
 export class TextureManager {
@@ -93,8 +93,23 @@ export class TextureManager {
 		new TextureLoader().load( url, ( tex => {
 
 			tex.encoding = SRGBColorSpace;
-			tex.wrapS = RepeatWrapping;
-			tex.wrapT = RepeatWrapping;
+
+			// Handle wrapMode
+			const wrapModeStr = this.cityTextures[ i ].wrapMode || "wrap";
+			let wrapMode = RepeatWrapping;
+
+			if ( wrapModeStr === "mirror" ) {
+
+				wrapMode = MirroredRepeatWrapping;
+
+			} else if ( wrapModeStr === "clamp" || wrapModeStr === "border" || wrapModeStr === "none" ) {
+
+				wrapMode = ClampToEdgeWrapping;
+
+			}
+
+			tex.wrapS = wrapMode;
+			tex.wrapT = wrapMode;
 
 			context.textures[ i ] = tex;
 
@@ -140,8 +155,23 @@ export class TextureManager {
 						const tex = new Texture( evt.target );
 
 						tex.encoding = SRGBColorSpace;
-						tex.wrapS = RepeatWrapping;
-						tex.wrapT = RepeatWrapping;
+
+						// Handle wrapMode
+						const wrapModeStr = texture.wrapMode || "wrap";
+						let wrapMode = RepeatWrapping;
+
+						if ( wrapModeStr === "mirror" ) {
+
+							wrapMode = MirroredRepeatWrapping;
+
+						} else if ( wrapModeStr === "clamp" || wrapModeStr === "border" || wrapModeStr === "none" ) {
+
+							wrapMode = ClampToEdgeWrapping;
+
+						}
+
+						tex.wrapS = wrapMode;
+						tex.wrapT = wrapMode;
 						tex.needsUpdate = true;
 
 						context.textures[ i ] = tex;
