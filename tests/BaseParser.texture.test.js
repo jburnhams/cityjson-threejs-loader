@@ -27,7 +27,7 @@ describe('BaseParser Texture Data Extraction', () => {
             }
         };
 
-        parser = new BaseParser(mockCityModel, {});
+        parser = new BaseParser(mockCityModel, {}, {});
     });
 
     describe('getTextureData', () => {
@@ -108,7 +108,7 @@ describe('BaseParser Texture Data Extraction', () => {
         });
 
         test('should handle missing appearance data', () => {
-            const parserNoAppearance = new BaseParser({ CityObjects: {}, vertices: [] }, {});
+            const parserNoAppearance = new BaseParser({ CityObjects: {}, vertices: [] }, {}, {});
 
             const texture = {
                 'visual': {
@@ -131,7 +131,7 @@ describe('BaseParser Texture Data Extraction', () => {
                 appearance: {
                     textures: [{ image: 'tex.png' }]
                 }
-            }, {});
+            }, {}, {});
 
             const texture = {
                 'visual': {
@@ -182,25 +182,6 @@ describe('BaseParser Texture Data Extraction', () => {
             // Vertex in second hole
             result = parser.getTextureData(0, 7, [4, 7], texture);
             expect(result.visual.uvs).toEqual([1.0, 0.0]); // UV index 1 in ring 2
-        });
-
-        test('should correctly handle texture index 5 (which is invalid for only 5 texture vertices)', () => {
-             // This test previously expected [0.5, 0.5] for an index that was effectively 5 in the data, but
-             // the textureVertices array only had indices 0..4.
-             // We've updated the code to handle undefined UVs by returning [0,0] which is the default fallback.
-             // So here we document the behavior for invalid indices.
-             const texture = {
-                'visual': {
-                    values: [
-                        [
-                            [0, 5, 5] // Invalid index 5
-                        ]
-                    ]
-                }
-            };
-            const result = parser.getTextureData(0, 1, [], texture);
-            // Since index 5 is out of bounds, uvs is undefined -> fallback to [0,0]
-            expect(result.visual.uvs).toEqual([0, 0]);
         });
     });
 
@@ -292,6 +273,63 @@ describe('BaseParser Texture Data Extraction', () => {
             expect(result).toBeDefined();
         });
 
+    });
+
+    describe('UV Validation', () => {
+
+        test('should warn and return default for invalid UV coordinates (NaN)', () => {
+             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+             mockCityModel.appearance['vertices-texture'].push([NaN, NaN]);
+             const invalidIndex = mockCityModel.appearance['vertices-texture'].length - 1;
+
+             const texture = {
+                'visual': {
+                    values: [
+                        [[0, invalidIndex, 1]]
+                    ]
+                }
+            };
+
+            const result = parser.getTextureData(0, 0, [], texture);
+            expect(result.visual.uvs).toEqual([0, 0]);
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+
+        test('should warn and return default for malformed UV coordinates (not array of 2)', () => {
+             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+             mockCityModel.appearance['vertices-texture'].push([0.5]); // Only one coordinate
+             const invalidIndex = mockCityModel.appearance['vertices-texture'].length - 1;
+
+             const texture = {
+                'visual': {
+                    values: [
+                        [[0, invalidIndex, 1]]
+                    ]
+                }
+            };
+
+            const result = parser.getTextureData(0, 0, [], texture);
+            expect(result.visual.uvs).toEqual([0, 0]);
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+
+        test('should allow UV coordinates outside [0, 1] for CityJSON 2.0', () => {
+             mockCityModel.appearance['vertices-texture'].push([2.5, -1.5]);
+             const validIndex = mockCityModel.appearance['vertices-texture'].length - 1;
+
+             const texture = {
+                'visual': {
+                    values: [
+                        [[0, validIndex, 1]]
+                    ]
+                }
+            };
+
+            const result = parser.getTextureData(0, 0, [], texture);
+            expect(result.visual.uvs).toEqual([2.5, -1.5]);
+        });
     });
 
 });

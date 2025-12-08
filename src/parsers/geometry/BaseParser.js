@@ -130,6 +130,21 @@ export class BaseParser {
 
 							if ( uvs ) {
 
+								// Validation logic
+								if ( ! Array.isArray( uvs ) || uvs.length < 2 ) {
+
+									console.warn( `Invalid UV coordinates at index ${data[ ringId ][ vId + 1 ]}: ${JSON.stringify( uvs )}` );
+									return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
+
+								}
+
+								if ( isNaN( uvs[ 0 ] ) || isNaN( uvs[ 1 ] ) ) {
+
+									console.warn( `NaN UV coordinates at index ${data[ ringId ][ vId + 1 ]}: ${JSON.stringify( uvs )}` );
+									return [ theme, { index: - 1, uvs: [ 0, 0 ] } ];
+
+								}
+
 								return [ theme, { index: data[ 0 ][ 0 ], uvs } ];
 
 							}
