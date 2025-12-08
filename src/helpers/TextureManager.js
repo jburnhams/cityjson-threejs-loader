@@ -130,6 +130,19 @@ export class TextureManager {
 
 		tex.wrapS = wrapMode;
 		tex.wrapT = wrapMode;
+
+		// Store textureType
+		const textureType = this.cityTextures[ i ].textureType || "unknown";
+		tex.userData = tex.userData || {};
+		tex.userData.textureType = textureType;
+
+		// Store formatType
+		if ( this.cityTextures[ i ].type ) {
+
+			tex.userData.formatType = this.cityTextures[ i ].type;
+
+		}
+
 		tex.needsUpdate = true;
 
 		return tex;
@@ -139,6 +152,27 @@ export class TextureManager {
 	setTextureFromUrl( i, url ) {
 
 		const context = this;
+
+		// Validate image format
+		if ( this.cityTextures[ i ].type ) {
+
+			const type = this.cityTextures[ i ].type.toLowerCase();
+			const extension = url.split( '.' ).pop().toLowerCase();
+
+			// Map common types to extensions
+			const validExtensions = {
+				'png': [ 'png' ],
+				'jpg': [ 'jpg', 'jpeg' ],
+				'jpeg': [ 'jpg', 'jpeg' ]
+			};
+
+			if ( validExtensions[ type ] && ! validExtensions[ type ].includes( extension ) ) {
+
+				console.warn( `Texture type mismatch: expected ${type} but got .${extension} for ${url}` );
+
+			}
+
+		}
 
 		// Check cache
 		if ( this.textureCache[ url ] ) {
@@ -268,6 +302,35 @@ export class TextureManager {
 	setTextureFromFile( file ) {
 
 		const context = this;
+
+		// Validate image format
+		for ( const [ i, texture ] of this.cityTextures.entries() ) {
+
+			if ( texture.image.includes( file.name ) ) {
+
+				if ( texture.type ) {
+
+					const type = texture.type.toLowerCase();
+					const extension = file.name.split( '.' ).pop().toLowerCase();
+
+					// Map common types to extensions
+					const validExtensions = {
+						'png': [ 'png' ],
+						'jpg': [ 'jpg', 'jpeg' ],
+						'jpeg': [ 'jpg', 'jpeg' ]
+					};
+
+					if ( validExtensions[ type ] && ! validExtensions[ type ].includes( extension ) ) {
+
+						console.warn( `Texture type mismatch: expected ${type} but got .${extension} for file ${file.name}` );
+
+					}
+
+				}
+
+			}
+
+		}
 
 		// Always reload the file if provided by the user, even if cached.
 		// This supports re-uploading modified files with the same name.
