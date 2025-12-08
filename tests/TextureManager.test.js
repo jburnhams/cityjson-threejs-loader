@@ -5,23 +5,80 @@ import * as THREE from 'three';
 // Mock Three.js
 jest.mock('three', () => {
     const originalModule = jest.requireActual('three');
+
+    class MockTexture {
+        constructor() {
+            this.dispose = jest.fn();
+            this.encoding = '';
+            this.wrapS = 1000;
+            this.wrapT = 1000;
+            this.needsUpdate = false;
+        }
+    }
+
+    class MockDataTexture extends MockTexture {
+        constructor(data, width, height, format, type) {
+            super();
+            this.isDataTexture = true;
+            this.image = { width, height, data };
+        }
+    }
+
+    class MockMaterial {
+        constructor() {
+            this.dispose = jest.fn();
+            this.uniforms = {
+                cityTexture: { value: null }
+            };
+        }
+    }
+
     return {
         ...originalModule,
+        Texture: MockTexture,
+        DataTexture: MockDataTexture,
         TextureLoader: jest.fn().mockImplementation(() => {
             return {
-                load: jest.fn((url, onLoad) => {
-                    const tex = new originalModule.Texture();
-                    // Simulate async load completion
-                    if (onLoad) onLoad(tex);
-                    return tex;
+                load: jest.fn((url, onLoad, onProgress, onError) => {
+                    if (url === 'error.png') {
+                        if (onError) onError(new Error('Failed to load'));
+                    } else {
+                        const tex = new MockTexture();
+                        if (onLoad) onLoad(tex);
+                        return tex;
+                    }
                 })
             };
         }),
+        ShaderLib: {
+            lambert: {
+                uniforms: {},
+                vertexShader: '',
+                fragmentShader: ''
+            }
+        },
         // Ensure constants are available
         RepeatWrapping: 1000,
         ClampToEdgeWrapping: 1001,
         MirroredRepeatWrapping: 1002,
         SRGBColorSpace: 'srgb',
+        RGBAFormat: 1023,
+        UnsignedByteType: 1009
+    };
+});
+
+// Mock CityObjectsMaterial
+jest.mock('../src/materials/CityObjectsMaterial', () => {
+    return {
+        CityObjectsMaterial: jest.fn().mockImplementation(() => {
+            return {
+                dispose: jest.fn(),
+                uniforms: {
+                    cityTexture: { value: null }
+                },
+                needsUpdate: false
+            };
+        })
     };
 });
 
@@ -91,9 +148,7 @@ describe('TextureManager', () => {
 
         const file = { name: 'mytexture.png' };
 
-        // We need to spy on onChange or check periodically, but since we mocked Image to be somewhat async...
-        // Let's hook into onChange of manager if possible, but TextureManager sets onChange to null in constructor.
-
+        // Mock onChange
         manager.onChange = () => {
              try {
                 expect(manager.textures[0]).toBeDefined();
@@ -110,5 +165,108 @@ describe('TextureManager', () => {
         };
 
         manager.setTextureFromFile(file);
+    });
+
+    describe('Error Handling and Memory Management', () => {
+        let consoleErrorSpy;
+
+        beforeEach(() => {
+            consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test('should log error when texture load fails (URL)', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'error.png' }
+                    ]
+                }
+            };
+
+            new TextureManager(citymodel);
+
+            expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to load texture'), expect.anything());
+        });
+
+        test('should call onError callback when texture load fails (URL)', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'error.png' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            // Clear the initial error from constructor
+            consoleErrorSpy.mockClear();
+
+            const onErrorSpy = jest.fn();
+            manager.onError = onErrorSpy;
+
+            // Re-trigger load
+            manager.setTextureFromUrl(0, 'error.png');
+
+            expect(onErrorSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'load', url: 'error.png' }));
+            // If callback provided, console.error should NOT be called
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+        });
+
+        test('should set fallback texture when load fails', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'error.png' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            // Trigger fail
+            manager.setTextureFromUrl(0, 'error.png');
+
+            expect(manager.textures[0]).toBeDefined();
+            expect(manager.textures[0].name).toBe('fallback');
+            // Check it is a DataTexture (basic check)
+            expect(manager.textures[0].isDataTexture).toBe(true);
+        });
+
+        test('should dispose textures and materials when dispose() is called', () => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'valid.png' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            // Trigger material creation
+            const baseMaterial = { objectColors: {}, surfaceColors: {} };
+            manager.getMaterials(baseMaterial);
+
+            const tex = manager.textures[0];
+            const mat = manager.materials[0];
+
+            expect(tex).toBeDefined();
+            expect(mat).toBeDefined();
+
+            // Check if dispose method exists
+            expect(typeof manager.dispose).toBe('function');
+
+            manager.dispose();
+
+            expect(tex.dispose).toHaveBeenCalled();
+            expect(mat.dispose).toHaveBeenCalled();
+            expect(manager.textures.length).toBe(0);
+            expect(manager.materials.length).toBe(0);
+        });
     });
 });

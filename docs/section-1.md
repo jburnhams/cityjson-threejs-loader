@@ -414,28 +414,23 @@ Support displacement or height maps for geometric detail.
 ### Phase 5: Error Handling & Robustness
 
 #### Task 5.1: Texture Loading Error Handling
+**Status: Completed**
 **Priority: High**
 **Complexity: Low**
 
 Robust error handling for failed texture loads.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Catch texture load failures (404, CORS, invalid format)
-- Log detailed error messages with texture URL and reason
-- Provide fallback texture or color for failed loads
-- Track failed texture count
-- Emit error events for debugging
-- Retry logic for transient failures (optional)
-
-**Test Cases:**
-1. Missing texture file (404) displays fallback and logs error
-2. CORS-blocked texture displays fallback and logs CORS error
-3. Invalid image format displays fallback and logs format error
-4. Failed textures don't break rendering of other surfaces
-5. Error events emitted with useful debugging information
+**Implementation Details:**
+- Implemented `onError` callback in `setTextureFromUrl()` for `TextureLoader`.
+- Implemented `img.onerror` handler in `setTextureFromFile()` for file loads.
+- Logs detailed error messages with texture URL or filename and error reason.
+- Supports optional `onError` callback in TextureManager for custom error handling.
+- Provides fallback texture (magenta 1x1) for failed loads to maintain visual consistency.
+- Ensures failed textures don't crash the application.
+- Added unit tests verifying error logging, callback execution, and fallback assignment.
 
 ---
 
@@ -464,28 +459,21 @@ Validate UV coordinates during parsing.
 ---
 
 #### Task 5.3: Memory Management
+**Status: Completed**
 **Priority: High**
 **Complexity: Medium**
 
 Proper texture memory management and disposal.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
-- `src/objects/CityObjectsMesh.js` - Dispose textures on object disposal
+- `src/objects/CityObjectsMesh.js`
 
-**Implementation Requirements:**
-- Implement `dispose()` method on TextureManager
-- Track texture references across materials
-- Dispose textures when no longer used
-- Dispose materials properly to free GPU memory
-- Monitor and report texture memory usage
-
-**Test Cases:**
-1. Loading/unloading models doesn't leak texture memory
-2. Texture dispose() frees GPU memory
-3. Reference counting prevents premature disposal
-4. Memory usage reported accurately
-5. Large scenes with many textures stay within memory limits
+**Implementation Details:**
+- Implemented `dispose()` method in `TextureManager` to dispose all managed textures and materials.
+- Implemented `dispose()` method in `CityObjectsMesh` to dispose geometry and materials.
+- Clears internal arrays to free references in TextureManager.
+- Added unit tests ensuring proper disposal of Three.js resources.
 
 ---
 

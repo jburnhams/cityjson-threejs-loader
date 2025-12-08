@@ -1,4 +1,4 @@
-import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace } from "three";
+import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace, DataTexture, RGBAFormat, UnsignedByteType } from "three";
 import { CityObjectsMaterial } from "../materials/CityObjectsMaterial";
 
 export class TextureManager {
@@ -20,6 +20,7 @@ export class TextureManager {
 
 		this.needsUpdate = false;
 		this.onChange = null;
+		this.onError = null;
 
 		this.loadFromUrl();
 
@@ -120,7 +121,34 @@ export class TextureManager {
 
 			}
 
-		} ) );
+		} ), undefined, ( err ) => {
+
+			// Create fallback texture
+			const data = new Uint8Array( [ 255, 0, 255, 255 ] );
+			const texture = new DataTexture( data, 1, 1, RGBAFormat, UnsignedByteType );
+			texture.encoding = SRGBColorSpace;
+			texture.needsUpdate = true;
+			texture.name = 'fallback';
+
+			context.textures[ i ] = texture;
+			context.needsUpdate = true;
+			if ( context.onChange ) {
+
+				context.onChange();
+
+			}
+
+			if ( this.onError ) {
+
+				this.onError( { type: 'load', url: url, error: err } );
+
+			} else {
+
+				console.error( `Failed to load texture at ${url}:`, err );
+
+			}
+
+		} );
 
 	}
 
@@ -133,6 +161,30 @@ export class TextureManager {
 			this.setTextureFromUrl( i, texture.image );
 
 		}
+
+	}
+
+	dispose() {
+
+		for ( const tex of this.textures ) {
+
+			if ( tex ) {
+
+				tex.dispose();
+
+			}
+
+		}
+
+		this.textures = [];
+
+		for ( const mat of this.materials ) {
+
+			mat.dispose();
+
+		}
+
+		this.materials = [];
 
 	}
 
@@ -149,6 +201,20 @@ export class TextureManager {
 				reader.onload = event => {
 
 					const img = new Image();
+
+					img.onerror = err => {
+
+						if ( this.onError ) {
+
+							this.onError( { type: 'load', url: file.name, error: err } );
+
+						} else {
+
+							console.error( `Failed to load texture from file ${file.name}:`, err );
+
+						}
+
+					};
 
 					img.onload = evt => {
 
