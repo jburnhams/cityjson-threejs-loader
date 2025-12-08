@@ -67,19 +67,20 @@ Support the `borderColor` property for textures using border wrap mode.
 ---
 
 #### Task 1.3: Implement textureType Awareness
+**Status: Completed**
 **Priority: Low**
 **Complexity: Low**
 
 Store and expose the `textureType` property from CityJSON texture objects.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Parse `textureType` from `citymodel.appearance.textures[i].textureType`
-- Valid values: `"specific"`, `"generic"`, `"typical"`, `"unknown"`
-- Store textureType metadata alongside texture
-- Expose via TextureManager API for potential filtering or visualization
+**Implementation Details:**
+- Implemented parsing of `textureType` from CityJSON appearance textures.
+- Stored the value in `texture.userData.textureType` for easy access.
+- Defaulted to `"unknown"` if the property is missing.
+- Added unit tests to verify parsing, storage, and default behavior.
 
 **CityJSON Specification:**
 - `specific` - Texture applies to specific instance
@@ -96,20 +97,22 @@ Store and expose the `textureType` property from CityJSON texture objects.
 ---
 
 #### Task 1.4: Image Format Validation
+**Status: Completed**
 **Priority: Low**
 **Complexity: Low**
 
 Validate texture image formats against the `type` property.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Parse `type` from `citymodel.appearance.textures[i].type`
-- Common values: `"PNG"`, `"JPG"`, `"JPEG"`
-- Validate that file extension matches declared type
-- Log warnings for mismatches
-- Handle missing type property gracefully
+**Implementation Details:**
+- Implemented parsing of `type` (image format) from CityJSON appearance textures.
+- Stored the format type in `texture.userData.formatType`.
+- Implemented validation logic in `setTextureFromUrl` and `setTextureFromFile`.
+- Validation checks if the file extension matches the declared type (e.g., PNG matches .png).
+- Mismatches log a warning to the console but still attempt to load the texture.
+- Added unit tests for valid matches, mismatches, and case insensitivity.
 
 **Test Cases:**
 1. Texture with `type: "PNG"` and `.png` file loads successfully

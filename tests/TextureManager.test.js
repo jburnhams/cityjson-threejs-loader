@@ -483,4 +483,133 @@ describe('TextureManager', () => {
         });
 
     });
+
+    describe('textureType and Format Validation', () => {
+        let consoleWarnSpy;
+
+        beforeEach(() => {
+            consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test('should parse and store textureType', (done) => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', textureType: 'specific' },
+                        { image: 'tex2.png', textureType: 'generic' },
+                        { image: 'tex3.png' } // Default
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            setTimeout(() => {
+                expect(manager.textures[0].userData.textureType).toBe('specific');
+                expect(manager.textures[1].userData.textureType).toBe('generic');
+                expect(manager.textures[2].userData.textureType).toBe('unknown');
+                done();
+            }, 10);
+        });
+
+        test('should parse and store formatType', (done) => {
+             const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', type: 'PNG' },
+                        { image: 'tex2.jpg' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            setTimeout(() => {
+                expect(manager.textures[0].userData.formatType).toBe('PNG');
+                expect(manager.textures[1].userData.formatType).toBeUndefined();
+                done();
+            }, 10);
+        });
+
+        test('should warn on type mismatch (URL)', (done) => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.jpg', type: 'PNG' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            setTimeout(() => {
+                expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Texture type mismatch'));
+                done();
+            }, 10);
+        });
+
+        test('should warn on type mismatch (File)', (done) => {
+            // Need to mock FileReader and Image again
+             const originalFileReader = global.FileReader;
+             const originalImage = global.Image;
+
+            global.FileReader = class {
+                readAsDataURL(file) {
+                    this.onload({ target: { result: 'data:image/png;base64,fake' } });
+                }
+            };
+
+            global.Image = class {
+                set src(val) {
+                    setTimeout(() => {
+                       if (this.onload) this.onload({ target: this });
+                    }, 0);
+                }
+            };
+
+            const citymodel = {
+                appearance: {
+                    textures: [
+                         { image: 'tex1.jpg', type: 'PNG' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+            const file = { name: 'tex1.jpg' };
+
+            // Wait for initial load
+             setTimeout(() => {
+                manager.setTextureFromFile(file);
+                expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Texture type mismatch'));
+
+                global.FileReader = originalFileReader;
+                global.Image = originalImage;
+                done();
+            }, 10);
+        });
+
+         test('should not warn on valid type match', (done) => {
+            const citymodel = {
+                appearance: {
+                    textures: [
+                        { image: 'tex1.png', type: 'PNG' },
+                        { image: 'tex2.jpg', type: 'JPG' }
+                    ]
+                }
+            };
+
+            const manager = new TextureManager(citymodel);
+
+            setTimeout(() => {
+                expect(consoleWarnSpy).not.toHaveBeenCalled();
+                done();
+            }, 10);
+        });
+
+    });
 });
