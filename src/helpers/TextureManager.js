@@ -17,6 +17,7 @@ export class TextureManager {
 
 		this.textures = [];
 		this.materials = [];
+		this.textureCache = {}; // Cache map for loaded textures (url/name -> Texture)
 
 		this.options = {
 			anisotropy: 1,
@@ -84,6 +85,7 @@ export class TextureManager {
 
 			}
 
+			// Dispose of old materials
 			for ( const mat of this.materials ) {
 
 				if ( mat !== baseMaterial ) {
@@ -104,36 +106,53 @@ export class TextureManager {
 
 	}
 
+	_configureTexture( tex, i ) {
+
+		tex.encoding = SRGBColorSpace;
+		tex.generateMipmaps = true;
+		tex.minFilter = this.options.minFilter;
+		tex.magFilter = this.options.magFilter;
+		tex.anisotropy = this.options.anisotropy;
+
+		// Handle wrapMode
+		const wrapModeStr = this.cityTextures[ i ].wrapMode || "wrap";
+		let wrapMode = RepeatWrapping;
+
+		if ( wrapModeStr === "mirror" ) {
+
+			wrapMode = MirroredRepeatWrapping;
+
+		} else if ( wrapModeStr === "clamp" || wrapModeStr === "border" || wrapModeStr === "none" ) {
+
+			wrapMode = ClampToEdgeWrapping;
+
+		}
+
+		tex.wrapS = wrapMode;
+		tex.wrapT = wrapMode;
+		tex.needsUpdate = true;
+
+		return tex;
+
+	}
+
 	setTextureFromUrl( i, url ) {
 
 		const context = this;
 
-		new TextureLoader().load( url, ( tex => {
+		// Check cache
+		if ( this.textureCache[ url ] ) {
 
-			tex.encoding = SRGBColorSpace;
-			tex.generateMipmaps = true;
-			tex.minFilter = this.options.minFilter;
-			tex.magFilter = this.options.magFilter;
-			tex.anisotropy = this.options.anisotropy;
+			const cachedTex = this.textureCache[ url ];
+			const tex = cachedTex.clone();
 
-			// Handle wrapMode
-			const wrapModeStr = this.cityTextures[ i ].wrapMode || "wrap";
-			let wrapMode = RepeatWrapping;
+			// We need to ensure the clone shares the same image.
+			// .clone() normally does this, but let's be sure.
+			// Also if cachedTex is still loading, tex will be incomplete?
+			// Three.js Texture.clone() copies .image reference.
 
-			if ( wrapModeStr === "mirror" ) {
-
-				wrapMode = MirroredRepeatWrapping;
-
-			} else if ( wrapModeStr === "clamp" || wrapModeStr === "border" || wrapModeStr === "none" ) {
-
-				wrapMode = ClampToEdgeWrapping;
-
-			}
-
-			tex.wrapS = wrapMode;
-			tex.wrapT = wrapMode;
-
-			context.textures[ i ] = tex;
+			this._configureTexture( tex, i );
+			this.textures[ i ] = tex;
 
 			this.needsUpdate = true;
 			if ( this.onChange ) {
@@ -142,7 +161,30 @@ export class TextureManager {
 
 			}
 
-		} ), undefined, ( err ) => {
+			return;
+
+		}
+
+		// Load new texture and cache it
+		const tex = new TextureLoader().load( url, ( loadedTex ) => {
+
+			// On load, we might need to update properties of the cached texture?
+			// The `tex` object IS the one being loaded.
+
+			// We don't need to do much here except trigger updates.
+			// The texture object itself is updated by Three.js internally.
+
+			this.needsUpdate = true;
+			if ( this.onChange ) {
+
+				this.onChange();
+
+			}
+
+		}, undefined, ( err ) => {
+
+			// Remove from cache if failed
+			delete context.textureCache[ url ];
 
 			// Create fallback texture
 			const data = new Uint8Array( [ 255, 0, 255, 255 ] );
@@ -171,11 +213,20 @@ export class TextureManager {
 
 		} );
 
+		// Cache immediately
+		this.textureCache[ url ] = tex;
+
+		// Configure instance
+		this._configureTexture( tex, i );
+
+		this.textures[ i ] = tex;
+
 	}
 
 	loadFromUrl() {
 
 		this.textures = [];
+		this.textureCache = {}; // Reset cache
 
 		for ( const [ i, texture ] of this.cityTextures.entries() ) {
 
@@ -197,7 +248,12 @@ export class TextureManager {
 
 		}
 
+		// Also dispose cached textures?
+		// Since we cloned them, calling dispose on clones is correct.
+		// The underlying image data is managed by browser/three.js.
+
 		this.textures = [];
+		this.textureCache = {};
 
 		for ( const mat of this.materials ) {
 
@@ -213,74 +269,77 @@ export class TextureManager {
 
 		const context = this;
 
-		for ( const [ i, texture ] of this.cityTextures.entries() ) {
+		// Always reload the file if provided by the user, even if cached.
+		// This supports re-uploading modified files with the same name.
+		// The cache will be updated with the new texture.
+
+		let fileReaderStarted = false;
+
+		for ( const [ i, texture ] of this.cityTextures.entries() ) { // eslint-disable-line no-unused-vars
 
 			if ( texture.image.includes( file.name ) ) {
 
-				const reader = new FileReader();
+				if ( ! fileReaderStarted ) {
 
-				reader.onload = event => {
+					fileReaderStarted = true;
+					const reader = new FileReader();
 
-					const img = new Image();
+					reader.onload = event => {
 
-					img.onerror = err => {
+						const img = new Image();
 
-						if ( this.onError ) {
+						img.onerror = err => {
 
-							this.onError( { type: 'load', url: file.name, error: err } );
+							if ( this.onError ) {
 
-						} else {
+								this.onError( { type: 'load', url: file.name, error: err } );
 
-							console.error( `Failed to load texture from file ${file.name}:`, err );
+							} else {
 
-						}
+								console.error( `Failed to load texture from file ${file.name}:`, err );
+
+							}
+
+						};
+
+						img.onload = evt => {
+
+							const masterTex = new Texture( evt.target );
+							masterTex.name = file.name;
+
+							// Update cache (overwriting if exists)
+							context.textureCache[ file.name ] = masterTex;
+
+							// Now assign to all matching textures
+							for ( const [ j, t ] of context.cityTextures.entries() ) {
+
+								if ( t.image.includes( file.name ) ) {
+
+									const tex = masterTex.clone();
+									context._configureTexture( tex, j );
+
+									context.textures[ j ] = tex;
+
+								}
+
+							}
+
+							this.needsUpdate = true;
+							if ( this.onChange ) {
+
+								this.onChange();
+
+							}
+
+						};
+
+						img.src = event.target.result;
 
 					};
 
-					img.onload = evt => {
+					reader.readAsDataURL( file );
 
-						const tex = new Texture( evt.target );
-
-						tex.encoding = SRGBColorSpace;
-						tex.generateMipmaps = true;
-						tex.minFilter = this.options.minFilter;
-						tex.magFilter = this.options.magFilter;
-						tex.anisotropy = this.options.anisotropy;
-
-						// Handle wrapMode
-						const wrapModeStr = texture.wrapMode || "wrap";
-						let wrapMode = RepeatWrapping;
-
-						if ( wrapModeStr === "mirror" ) {
-
-							wrapMode = MirroredRepeatWrapping;
-
-						} else if ( wrapModeStr === "clamp" || wrapModeStr === "border" || wrapModeStr === "none" ) {
-
-							wrapMode = ClampToEdgeWrapping;
-
-						}
-
-						tex.wrapS = wrapMode;
-						tex.wrapT = wrapMode;
-						tex.needsUpdate = true;
-
-						context.textures[ i ] = tex;
-
-						this.needsUpdate = true;
-						if ( this.onChange ) {
-
-							this.onChange();
-
-						}
-
-					};
-
-					img.src = event.target.result;
-
-				};
-
-				reader.readAsDataURL( file );
+				}
 
 			}
 
