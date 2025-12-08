@@ -1,4 +1,4 @@
-import { Color, ShaderChunk, ShaderMaterial, UniformsLib } from "three";
+import { Color, ShaderChunk, ShaderMaterial, UniformsLib, Vector4 } from "three";
 
 UniformsLib.cityobject = {
 
@@ -7,6 +7,8 @@ UniformsLib.cityobject = {
 	attributeColors: { value: [] },
 	cityMaterials: { value: [] },
 	cityTexture: { type: 't' },
+	borderColor: { value: new Vector4( 0, 0, 0, 0 ) },
+	useBorderColor: { value: 0 },
 	showLod: { value: - 1 },
 	highlightedObjId: { value: - 1 },
 	highlightedGeomId: { value: - 1 },

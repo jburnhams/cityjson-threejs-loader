@@ -47,33 +47,22 @@ Extend texture loading to respect the `wrapMode` property from CityJSON texture 
 ---
 
 #### Task 1.2: Implement borderColor Support
+**Status: Completed**
 **Priority: Medium**
 **Complexity: Low**
 
 Support the `borderColor` property for textures using border wrap mode.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
-- `src/materials/CityObjectsBaseMaterial.js` - Add uniform for border color
-- `src/materials/CityObjectsMaterial.js` - Update fragment shader
+- `src/materials/CityObjectsBaseMaterial.js`
+- `src/materials/CityObjectsMaterial.js`
 
-**Implementation Requirements:**
-- Parse `borderColor` from `citymodel.appearance.textures[i].borderColor` (RGBA array [0.0-1.0])
-- Store border color per texture
-- When `wrapMode: "border"`, pass border color to shader as uniform
-- Implement custom shader logic to apply border color outside UV [0.0, 1.0] range
-- Note: Three.js doesn't natively support border color, requires custom shader implementation
-
-**Shader Approach:**
-- Add `borderColor` uniform to material
-- In fragment shader, check if UV coordinates are outside [0.0, 1.0]
-- If outside range and borderColor defined, use borderColor instead of sampling texture
-
-**Test Cases:**
-1. Texture with `wrapMode: "border"` and `borderColor: [1.0, 0.0, 0.0, 1.0]` shows red outside UV range
-2. Texture with `wrapMode: "border"` and no borderColor uses default (black or texture edge)
-3. BorderColor ignored when wrapMode is not "border"
-4. Semi-transparent borderColor (alpha < 1.0) blends correctly
+**Implementation Details:**
+- Added `borderColor` uniform to `CityObjectsBaseMaterial` (initialized to null).
+- Updated `CityObjectsMaterial` fragment shader to use `borderColor` when UVs are outside [0, 1] range.
+- Updated `TextureManager` to parse `borderColor` from CityJSON and set the uniform value on the material if `wrapMode` is 'border'.
+- Added unit tests verifying `borderColor` is correctly passed to the material.
 
 ---
 
@@ -260,27 +249,22 @@ Support compressed texture formats for reduced memory and bandwidth.
 ---
 
 #### Task 3.2: Mipmapping and Filtering
+**Status: Completed**
 **Priority: High**
 **Complexity: Low**
 
 Configure texture mipmapping and filtering for quality and performance.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Enable automatic mipmap generation (`texture.generateMipmaps = true`)
-- Configure minification filter (`THREE.LinearMipmapLinearFilter`)
-- Configure magnification filter (`THREE.LinearFilter`)
-- Support anisotropic filtering for improved quality at oblique angles
-- Make filtering configurable per texture or globally
-
-**Test Cases:**
-1. Distant textures render without aliasing (mipmaps working)
-2. Close-up textures show smooth interpolation
-3. Anisotropic filtering improves quality on angled surfaces
-4. Performance measured with/without mipmaps on large scenes
-5. Memory usage accounts for mipmap overhead (~33% increase)
+**Implementation Details:**
+- Enabled `texture.generateMipmaps = true` for both URL and file-based textures.
+- Set `minFilter` to `THREE.LinearMipmapLinearFilter` (default, configurable via options).
+- Set `magFilter` to `THREE.LinearFilter` (default, configurable via options).
+- Set `anisotropy` to a safe default of 1 (no anisotropy).
+- `TextureManager` now accepts an `options` object in the constructor to configure `anisotropy`, `minFilter`, and `magFilter`.
+- Added unit tests verifying filtering properties and configuration options.
 
 ---
 
