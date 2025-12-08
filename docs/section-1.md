@@ -26,30 +26,23 @@ According to the CityJSON specification (versions 1.x through 2.0), the followin
 ### Phase 1: Basic CityJSON Compliance
 
 #### Task 1.1: Implement wrapMode Support
+**Status: Completed**
 **Priority: High**
 **Complexity: Medium**
 
 Extend texture loading to respect the `wrapMode` property from CityJSON texture objects.
 
-**Files to Modify:**
-- `src/helpers/TextureManager.js` - Update `setTextureFromUrl()` and `setTextureFromFile()` methods
+**Files Modified:**
+- `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Parse `wrapMode` from `citymodel.appearance.textures[i].wrapMode`
-- Map CityJSON wrapMode values to Three.js constants:
-  - `"wrap"` → `THREE.RepeatWrapping` (current default)
+**Implementation Details:**
+- Implemented parsing of `wrapMode` in both `setTextureFromUrl()` and `setTextureFromFile()`.
+- Mapped CityJSON wrapMode values to Three.js constants:
+  - `"wrap"` → `THREE.RepeatWrapping`
   - `"mirror"` → `THREE.MirroredRepeatWrapping`
-  - `"clamp"` → `THREE.ClampToEdgeWrapping`
-  - `"border"` → `THREE.ClampToEdgeWrapping` (Three.js doesn't have border mode, approximate with clamp)
-  - `"none"` → `THREE.ClampToEdgeWrapping`
-- Apply to both `texture.wrapS` and `texture.wrapT`
-
-**Test Cases:**
-1. Load CityJSON with `wrapMode: "wrap"` - texture should repeat
-2. Load CityJSON with `wrapMode: "mirror"` - texture should mirror at edges
-3. Load CityJSON with `wrapMode: "clamp"` - texture should clamp at edges
-4. Load CityJSON with missing wrapMode - should default to "wrap"
-5. Verify UV coordinates > 1.0 render correctly with each wrap mode
+  - `"clamp"`, `"border"`, `"none"` → `THREE.ClampToEdgeWrapping`
+- Applied to both `texture.wrapS` and `texture.wrapT`.
+- Added unit tests in `tests/TextureManager.test.js` covering all mapping cases and defaults.
 
 ---
 
