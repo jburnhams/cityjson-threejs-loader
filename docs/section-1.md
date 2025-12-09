@@ -26,7 +26,7 @@ According to the CityJSON specification (versions 1.x through 2.0), the followin
 ### Phase 1: Basic CityJSON Compliance
 
 #### Task 1.1: Implement wrapMode Support
-**Status: Completed**
+**Status: Verified**
 **Priority: High**
 **Complexity: Medium**
 
@@ -47,7 +47,7 @@ Extend texture loading to respect the `wrapMode` property from CityJSON texture 
 ---
 
 #### Task 1.2: Implement borderColor Support
-**Status: Completed**
+**Status: Verified**
 **Priority: Medium**
 **Complexity: Low**
 
@@ -67,7 +67,7 @@ Support the `borderColor` property for textures using border wrap mode.
 ---
 
 #### Task 1.3: Implement textureType Awareness
-**Status: Completed**
+**Status: Verified**
 **Priority: Low**
 **Complexity: Low**
 
@@ -97,7 +97,7 @@ Store and expose the `textureType` property from CityJSON texture objects.
 ---
 
 #### Task 1.4: Image Format Validation
-**Status: Completed**
+**Status: Verified**
 **Priority: Low**
 **Complexity: Low**
 
