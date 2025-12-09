@@ -143,7 +143,7 @@ export class ProceduralTextureGenerator {
 
 		const color1 = new Color( params.color1 || '#000000' );
 		const color2 = new Color( params.color2 || '#FFFFFF' );
-		const scale = parseFloat( params.scale ) || 1.0; // Defines "granularity" somewhat
+		// const scale = parseFloat( params.scale ) || 1.0; // Defines "granularity" somewhat
 
 		const imageData = ctx.createImageData( width, height );
 		const data = imageData.data;

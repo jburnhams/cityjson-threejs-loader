@@ -339,6 +339,7 @@ export class TextureManager {
 				// Fallback handled by placeholder logic below or manually here if we want strict ordering
 				// But since we returned above if successful, we continue...
 				// Actually, if we fail here, we should probably set an error texture or keep placeholder.
+
 			}
 
 			return; // Procedural textures are synchronous
@@ -592,7 +593,7 @@ export class TextureManager {
 			if ( extension === 'ktx2' ) loader = this.options.ktx2Loader;
 			else loader = this.options.ddsLoader;
 
-			const masterTex = loader.load( url, ( loadedTex ) => {
+			loader.load( url, ( loadedTex ) => {
 
 				URL.revokeObjectURL( url );
 
