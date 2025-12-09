@@ -66,6 +66,13 @@ export class TextureManager {
 
 					mat.uniforms.cityTexture.value = this.textures[ i ];
 
+					// Pass texture matrix for transformations (Task 2.2)
+					if ( this.textures[ i ].matrix ) {
+
+						mat.uniforms.cityTextureTransform.value = this.textures[ i ].matrix;
+
+					}
+
 					// Handle PBR maps (Task 2.1)
 					// We look for related textures defined in userData or other properties
 					// Assuming structure: texture.userData.related = { normal: index, roughness: index, ... }
@@ -190,6 +197,40 @@ export class TextureManager {
 		if ( cityTexture && cityTexture.type ) {
 
 			tex.userData.formatType = cityTexture.type;
+
+		}
+
+		// Handle textureTransform (Task 2.2)
+		if ( cityTexture && cityTexture.textureTransform ) {
+
+			const tf = cityTexture.textureTransform;
+
+			if ( tf.offset && Array.isArray( tf.offset ) && tf.offset.length === 2 ) {
+
+				tex.offset.set( tf.offset[ 0 ], tf.offset[ 1 ] );
+
+			}
+
+			if ( tf.scale && Array.isArray( tf.scale ) && tf.scale.length === 2 ) {
+
+				tex.repeat.set( tf.scale[ 0 ], tf.scale[ 1 ] );
+
+			}
+
+			if ( tf.center && Array.isArray( tf.center ) && tf.center.length === 2 ) {
+
+				tex.center.set( tf.center[ 0 ], tf.center[ 1 ] );
+
+			}
+
+			if ( typeof tf.rotation === 'number' ) {
+
+				tex.rotation = tf.rotation;
+
+			}
+
+			tex.matrixAutoUpdate = true;
+			tex.updateMatrix();
 
 		}
 
