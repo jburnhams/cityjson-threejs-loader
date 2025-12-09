@@ -66,6 +66,53 @@ export class TextureManager {
 
 					mat.uniforms.cityTexture.value = this.textures[ i ];
 
+					// Handle PBR maps (Task 2.1)
+					// We look for related textures defined in userData or other properties
+					// Assuming structure: texture.userData.related = { normal: index, roughness: index, ... }
+					// OR check if we have other textures with same name/path but different suffix?
+					// For now, let's implement the 'related' index lookup if present in CityJSON texture object
+					// We can assume user adds this custom property to the texture object in CityJSON
+
+					const cityTex = this.cityTextures[ i ];
+					if ( cityTex.related ) {
+
+						if ( cityTex.related.normal !== undefined && this.textures[ cityTex.related.normal ] ) {
+
+							mat.uniforms.cityTextureNormal.value = this.textures[ cityTex.related.normal ];
+							mat.defines.USE_CITY_NORMALMAP = '';
+
+						}
+
+						if ( cityTex.related.roughness !== undefined && this.textures[ cityTex.related.roughness ] ) {
+
+							mat.uniforms.cityTextureRoughness.value = this.textures[ cityTex.related.roughness ];
+							mat.defines.USE_CITY_ROUGHNESSMAP = '';
+
+						}
+
+						if ( cityTex.related.metalness !== undefined && this.textures[ cityTex.related.metalness ] ) {
+
+							mat.uniforms.cityTextureMetalness.value = this.textures[ cityTex.related.metalness ];
+							mat.defines.USE_CITY_METALNESSMAP = '';
+
+						}
+
+						if ( cityTex.related.ao !== undefined && this.textures[ cityTex.related.ao ] ) {
+
+							mat.uniforms.cityTextureAO.value = this.textures[ cityTex.related.ao ];
+							mat.defines.USE_CITY_AOMAP = '';
+
+						}
+
+						if ( cityTex.related.emissive !== undefined && this.textures[ cityTex.related.emissive ] ) {
+
+							mat.uniforms.cityTextureEmissive.value = this.textures[ cityTex.related.emissive ];
+							mat.defines.USE_CITY_EMISSIVEMAP = '';
+
+						}
+
+					}
+
 					// Handle borderColor
 					if ( this.cityTextures[ i ].wrapMode === 'border' && this.cityTextures[ i ].borderColor ) {
 

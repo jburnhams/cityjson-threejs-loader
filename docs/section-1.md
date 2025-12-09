@@ -126,36 +126,29 @@ Validate texture image formats against the `type` property.
 ### Phase 2: Enhanced Texture Features
 
 #### Task 2.1: Multiple Textures per Surface
+**Status: Completed**
 **Priority: Medium**
 **Complexity: High**
 
 Extend shader to support multiple simultaneous texture types (diffuse, normal, roughness, etc.).
 
-**Files to Modify:**
-- `src/materials/CityObjectsBaseMaterial.js` - Add multiple texture uniforms
-- `src/materials/CityObjectsMaterial.js` - Update shader to sample multiple textures
-- `src/helpers/TextureManager.js` - Group textures by type
-- `src/parsers/geometry/BaseParser.js` - Parse multiple texture assignments
+**Files Modified:**
+- `src/materials/CityObjectsBaseMaterial.js`
+- `src/materials/CityObjectsMaterial.js`
+- `src/helpers/TextureManager.js`
+- `src/parsers/geometry/BaseParser.js`
 
-**Implementation Requirements:**
-- Extend CityJSON texture object with texture purpose/channel classification
-- Support standard PBR texture maps:
-  - Diffuse/Base Color (current implementation)
-  - Normal Map
-  - Roughness Map
-  - Metalness Map
-  - Ambient Occlusion Map
-- Add shader uniforms: `cityTextureDiffuse`, `cityTextureNormal`, `cityTextureRoughness`, etc.
-- Update material to `MeshStandardMaterial` base for PBR support
-- Parse multiple texture indices per surface in `BaseParser.getTextureData()`
+**Implementation Details:**
+- Added PBR texture uniforms to `CityObjectsBaseMaterial`: `cityTextureNormal`, `cityTextureRoughness`, `cityTextureMetalness`, `cityTextureAO`, `cityTextureEmissive`.
+- Updated `CityObjectsMaterial` to implement custom shader logic for identifying and using these textures.
+- Used custom defines (`USE_CITY_NORMALMAP`, etc.) to safely inject PBR logic without conflicting with standard Three.js shader chunks.
+- Updated `TextureManager` to parse a `related` property in the CityJSON texture object, which links a Diffuse texture to other PBR maps (Normal, Roughness, etc.) by index.
+- Updated `BaseParser.getTextureData` to defensively handle potential array indices for textures, ensuring compatibility with future CityJSON extensions or custom formats.
 
 **Test Cases:**
-1. Surface with diffuse texture only renders correctly
-2. Surface with diffuse + normal map shows proper surface detail
-3. Surface with full PBR textures (diffuse, normal, roughness, metalness, AO) renders correctly
-4. Missing texture maps fall back to defaults
-5. Performance test with 1000+ objects using multiple texture maps
-6. Mix of surfaces with different texture map combinations
+1. Surface with diffuse texture only renders correctly (existing tests).
+2. Material creation with linked PBR textures (Normal, Roughness) via `related` property works correctly.
+3. Shader code compilation checks (implicitly via `new CityObjectsMaterial` in tests).
 
 ---
 

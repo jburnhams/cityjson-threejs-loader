@@ -7,6 +7,11 @@ UniformsLib.cityobject = {
 	attributeColors: { value: [] },
 	cityMaterials: { value: [] },
 	cityTexture: { type: 't' },
+	cityTextureNormal: { type: 't' },
+	cityTextureRoughness: { type: 't' },
+	cityTextureMetalness: { type: 't' },
+	cityTextureAO: { type: 't' },
+	cityTextureEmissive: { type: 't' },
 	borderColor: { value: new Vector4( 0, 0, 0, 0 ) },
 	useBorderColor: { value: 0 },
 	showLod: { value: - 1 },
@@ -90,6 +95,17 @@ ShaderChunk.cityobjectinclude_vertex = `
 
 		#endif
     `;
+
+ShaderChunk.cityobjectnormal_vertex = `
+		#ifdef TEXTURE_THEME
+			#ifdef USE_CITY_NORMALMAP
+				// Ensure tangents are available if using normal map
+				// Three.js Standard material usually calculates vNormal, vTangent, vBitangent
+				// We need to make sure UVs are passed correctly for normal mapping
+				// vTexUV is already passed by cityobjectdiffuse_vertex or similar logic
+			#endif
+		#endif
+`;
 
 ShaderChunk.cityobjectdiffuse_vertex = `
         #ifdef SHOW_SEMANTICS

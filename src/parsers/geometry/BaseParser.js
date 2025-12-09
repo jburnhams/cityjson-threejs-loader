@@ -145,7 +145,18 @@ export class BaseParser {
 
 								}
 
-								return [ theme, { index: data[ 0 ][ 0 ], uvs } ];
+								// Handle multiple indices (array) or single index
+								const textureIndex = data[ 0 ][ 0 ];
+								if ( Array.isArray( textureIndex ) ) {
+
+									// If we have multiple indices, we just take the first one for now
+									// to maintain compatibility with existing rendering pipeline (which expects scalar).
+									// In a future update, we could expose all indices if needed.
+									return [ theme, { index: textureIndex[ 0 ], uvs, allIndices: textureIndex } ];
+
+								}
+
+								return [ theme, { index: textureIndex, uvs } ];
 
 							}
 
