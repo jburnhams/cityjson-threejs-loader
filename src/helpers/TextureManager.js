@@ -1,5 +1,6 @@
 import { Texture, ShaderLib, RepeatWrapping, MirroredRepeatWrapping, ClampToEdgeWrapping, TextureLoader, SRGBColorSpace, DataTexture, RGBAFormat, UnsignedByteType, LinearMipmapLinearFilter, LinearFilter, Vector4 } from "three";
 import { CityObjectsMaterial } from "../materials/CityObjectsMaterial";
+import { ProceduralTextureGenerator } from "./ProceduralTextureGenerator.js";
 
 export class TextureManager {
 
@@ -286,6 +287,63 @@ export class TextureManager {
 	setTextureFromUrl( i, url ) {
 
 		const context = this;
+
+		// Check for procedural textures
+		if ( url.startsWith( 'procedural://' ) ) {
+
+			// Check cache first
+			if ( this.textureCache[ url ] ) {
+
+				const cachedTex = this.textureCache[ url ];
+				const tex = cachedTex.clone();
+
+				this._configureTexture( tex, i );
+				this.textures[ i ] = tex;
+
+				this._updateMaterialTexture( i, tex );
+				this.needsUpdate = true;
+
+				if ( this.onChange ) this.onChange();
+
+				return;
+
+			}
+
+			try {
+
+				const urlObj = new URL( url );
+				const type = urlObj.hostname; // 'brick', 'checker', etc.
+				const params = {};
+
+				urlObj.searchParams.forEach( ( value, key ) => {
+
+					params[ key ] = value;
+
+				} );
+
+				const tex = ProceduralTextureGenerator.generate( type, params );
+				tex.name = url;
+
+				this.textureCache[ url ] = tex;
+
+				this.textures[ i ] = tex;
+				this._configureTexture( tex, i );
+				this._updateMaterialTexture( i, tex );
+
+				this.needsUpdate = true;
+				if ( this.onChange ) this.onChange();
+
+			} catch ( e ) {
+
+				console.error( `Failed to generate procedural texture: ${url}`, e );
+				// Fallback handled by placeholder logic below or manually here if we want strict ordering
+				// But since we returned above if successful, we continue...
+				// Actually, if we fail here, we should probably set an error texture or keep placeholder.
+			}
+
+			return; // Procedural textures are synchronous
+
+		}
 
 		// Validate image format
 		if ( this.cityTextures[ i ] && this.cityTextures[ i ].type ) {
