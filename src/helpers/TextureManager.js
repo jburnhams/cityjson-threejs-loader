@@ -332,11 +332,6 @@ export class TextureManager {
 		}
 
 		// Assign singleton placeholder immediately
-		// We can't easily configure the singleton placeholder per texture slot (wrap modes etc) because it's shared.
-		// So we clone it? DataTexture.clone() works.
-		// Or we just use the raw placeholder and don't care about wrap modes until real texture loads.
-		// Let's clone it so we can set wrap modes correctly if needed, although it's just a placeholder.
-		// Actually, if we want correct UV behavior even for placeholder (e.g. repeat), we should clone.
 		const placeholder = this.placeholderTexture.clone();
 		placeholder.name = 'placeholder';
 		this._configureTexture( placeholder, i );
@@ -366,13 +361,13 @@ export class TextureManager {
 		}
 
 		// Load new texture
-		loader.load( url, ( loadedTex ) => {
+		const tex = loader.load( url, ( loadedTex ) => {
 
-			// Update the texture array
+			// Update the texture array with the loaded texture object (usually same as tex)
 			context.textures[ i ] = loadedTex;
 			context._configureTexture( loadedTex, i );
 
-			// Update cache
+			// Update cache to ensure it has the fully loaded version
 			context.textureCache[ url ] = loadedTex;
 
 			// Update material reference
@@ -420,6 +415,9 @@ export class TextureManager {
 			}
 
 		} );
+
+		// Cache the pending texture immediately
+		this.textureCache[ url ] = tex;
 
 	}
 
@@ -511,6 +509,7 @@ export class TextureManager {
 			}
 
 		}
+
 		this.needsUpdate = true;
 		if ( this.onChange ) {
 
