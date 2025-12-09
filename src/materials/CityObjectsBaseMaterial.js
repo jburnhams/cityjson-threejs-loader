@@ -1,4 +1,4 @@
-import { Color, ShaderChunk, ShaderMaterial, UniformsLib, Vector4 } from "three";
+import { Color, Matrix3, ShaderChunk, ShaderMaterial, UniformsLib, Vector4 } from "three";
 
 UniformsLib.cityobject = {
 
@@ -7,6 +7,7 @@ UniformsLib.cityobject = {
 	attributeColors: { value: [] },
 	cityMaterials: { value: [] },
 	cityTexture: { type: 't' },
+	cityTextureTransform: { value: new Matrix3() },
 	cityTextureNormal: { type: 't' },
 	cityTextureRoughness: { type: 't' },
 	cityTextureMetalness: { type: 't' },
@@ -87,6 +88,8 @@ ShaderChunk.cityobjectinclude_vertex = `
 
 		#ifdef TEXTURE_THEME
 
+			uniform mat3 cityTextureTransform;
+
 			attribute int TEXTURE_THEME;
 			attribute vec2 TEXTURE_THEME_UV;
 
@@ -138,7 +141,7 @@ ShaderChunk.cityobjectdiffuse_vertex = `
 		#ifdef TEXTURE_THEME
 
 			vTexIndex = TEXTURE_THEME;
-			vTexUV = TEXTURE_THEME_UV;
+			vTexUV = ( cityTextureTransform * vec3( TEXTURE_THEME_UV, 1.0 ) ).xy;
 
 			if ( vTexIndex > - 1 ) {
 

@@ -153,30 +153,30 @@ Extend shader to support multiple simultaneous texture types (diffuse, normal, r
 ---
 
 #### Task 2.2: Texture Coordinate Transformation
+**Status: Completed**
 **Priority: Low**
 **Complexity: Medium**
 
 Support texture coordinate transformations (rotation, scale, offset).
 
-**Files to Modify:**
-- `src/materials/CityObjectsBaseMaterial.js` - Add transformation uniforms
-- `src/materials/CityObjectsMaterial.js` - Apply transformations in vertex shader
-- `src/helpers/TextureManager.js` - Store transformation matrices
+**Files Modified:**
+- `src/materials/CityObjectsBaseMaterial.js`
+- `src/materials/CityObjectsMaterial.js`
+- `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Parse texture transformation matrices from CityJSON (if extended)
-- Apply 2D transformations to UV coordinates in vertex shader:
-  - Translation (offset)
-  - Rotation (around center)
-  - Scale
-- Store transformation parameters per texture theme
+**Implementation Details:**
+- Implemented parsing of `textureTransform` object from CityJSON texture definition.
+- Supports `offset` (vec2), `scale` (vec2), `rotation` (float), and `center` (vec2).
+- Updates Three.js `Texture` properties (`offset`, `repeat`, `rotation`, `center`) and ensures matrix update.
+- Added `cityTextureTransform` (mat3) uniform to `CityObjectsBaseMaterial` (defaults to identity).
+- Passed the texture matrix to the material uniform in `TextureManager`.
+- Updated `CityObjectsMaterial` vertex shader to apply the transformation matrix to UV coordinates: `vTexUV = ( cityTextureTransform * vec3( TEXTURE_THEME_UV, 1.0 ) ).xy`.
 
 **Test Cases:**
-1. Texture with 2x scale shows smaller/denser pattern
-2. Texture with 90° rotation displays rotated correctly
-3. Texture with offset shifts pattern correctly
-4. Combined transformations (scale + rotate + offset) work correctly
-5. Transformation applies per-theme correctly
+1. Texture properties (offset, repeat, rotation, center) are correctly set from CityJSON.
+2. `cityTextureTransform` uniform is correctly populated with the texture matrix.
+3. Fallback to identity matrix when no transform is specified.
+4. Verified via `tests/TextureManager.transform.test.js`.
 
 ---
 
