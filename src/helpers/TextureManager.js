@@ -77,28 +77,38 @@ export class TextureManager {
 					if ( cityTex.related ) {
 
 						if ( cityTex.related.normal !== undefined && this.textures[ cityTex.related.normal ] ) {
+
 							mat.uniforms.cityTextureNormal.value = this.textures[ cityTex.related.normal ];
 							mat.defines.USE_CITY_NORMALMAP = '';
+
 						}
 
 						if ( cityTex.related.roughness !== undefined && this.textures[ cityTex.related.roughness ] ) {
+
 							mat.uniforms.cityTextureRoughness.value = this.textures[ cityTex.related.roughness ];
 							mat.defines.USE_CITY_ROUGHNESSMAP = '';
+
 						}
 
 						if ( cityTex.related.metalness !== undefined && this.textures[ cityTex.related.metalness ] ) {
+
 							mat.uniforms.cityTextureMetalness.value = this.textures[ cityTex.related.metalness ];
 							mat.defines.USE_CITY_METALNESSMAP = '';
+
 						}
 
 						if ( cityTex.related.ao !== undefined && this.textures[ cityTex.related.ao ] ) {
+
 							mat.uniforms.cityTextureAO.value = this.textures[ cityTex.related.ao ];
 							mat.defines.USE_CITY_AOMAP = '';
+
 						}
 
 						if ( cityTex.related.emissive !== undefined && this.textures[ cityTex.related.emissive ] ) {
+
 							mat.uniforms.cityTextureEmissive.value = this.textures[ cityTex.related.emissive ];
 							mat.defines.USE_CITY_EMISSIVEMAP = '';
+
 						}
 
 					}
