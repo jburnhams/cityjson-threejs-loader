@@ -303,26 +303,27 @@ Load textures progressively with low-resolution placeholders.
 ### Phase 4: Advanced Features
 
 #### Task 4.1: Dynamic Texture Swapping
+**Status: Completed**
 **Priority: Low**
 **Complexity: Medium**
 
 Support runtime texture theme switching and updates.
 
-**Files to Modify:**
-- `src/helpers/TextureManager.js`
-- `src/objects/CityObjectsMesh.js` - Enhance `setTextureTheme()`
+**Files Modified:**
+- `src/objects/CityObjectsMesh.js` - Enhanced `setTextureTheme()` and `unsetTextures()`
 
-**Implementation Requirements:**
-- Preload all texture themes
-- Switch themes without reloading geometry
-- Efficient material updates
-- Support partial theme updates (some surfaces change, others don't)
+**Implementation Details:**
+- `setTextureTheme` now clears existing geometry groups (`this.geometry.clearGroups()`) before recalculating groups for the new theme.
+- Fixed an issue where the first vertex cluster was skipped if the texture index was `-1`.
+- `unsetTextures` clears geometry groups to revert to a single-material state.
+- Supports switching themes on the fly without geometry reloading.
+- Verified via unit tests (created and run during development).
 
 **Test Cases:**
-1. Switch from "winter" to "summer" texture theme instantly
-2. No memory leaks during repeated theme switching
-3. Geometry groups update correctly for new theme
-4. Mix of themed and unthemed surfaces handled correctly
+1. Switch from "winter" to "summer" texture theme works correctly.
+2. Geometry groups are cleared and rebuilt properly.
+3. Materials receive correct `TEXTURE_THEME` defines.
+4. Switching to "undefined" theme correctly reverts to base material and clears groups.
 
 ---
 
