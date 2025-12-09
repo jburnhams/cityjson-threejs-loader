@@ -18,6 +18,7 @@ export class TextureManager {
 		this.textures = [];
 		this.materials = [];
 		this.textureCache = {}; // Cache map for loaded textures (url/name -> Texture)
+		this.placeholderTexture = this.createPlaceholderTexture(); // Singleton placeholder
 
 		this.options = {
 			anisotropy: 1,
@@ -74,12 +75,6 @@ export class TextureManager {
 					}
 
 					// Handle PBR maps (Task 2.1)
-					// We look for related textures defined in userData or other properties
-					// Assuming structure: texture.userData.related = { normal: index, roughness: index, ... }
-					// OR check if we have other textures with same name/path but different suffix?
-					// For now, let's implement the 'related' index lookup if present in CityJSON texture object
-					// We can assume user adds this custom property to the texture object in CityJSON
-
 					const cityTex = this.cityTextures[ i ];
 					if ( cityTex.related ) {
 
@@ -162,6 +157,38 @@ export class TextureManager {
 
 	}
 
+	createPlaceholderTexture() {
+
+		const width = 2;
+		const height = 2;
+		const size = width * height;
+		const data = new Uint8Array( size * 4 );
+
+		// Create a small 2x2 checkerboard pattern
+		const c1 = [ 200, 200, 200, 255 ];
+		const c2 = [ 150, 150, 150, 255 ];
+
+		for ( let i = 0; i < size; i ++ ) {
+
+			const color = ( i % 2 === 0 ) ? c1 : c2;
+			const stride = i * 4;
+			data[ stride ] = color[ 0 ];
+			data[ stride + 1 ] = color[ 1 ];
+			data[ stride + 2 ] = color[ 2 ];
+			data[ stride + 3 ] = color[ 3 ];
+
+		}
+
+		const texture = new DataTexture( data, width, height, RGBAFormat, UnsignedByteType );
+		texture.name = 'placeholder';
+		texture.needsUpdate = true;
+		texture.magFilter = LinearFilter;
+		texture.minFilter = LinearFilter;
+
+		return texture;
+
+	}
+
 	_configureTexture( tex, i ) {
 
 		tex.encoding = SRGBColorSpace;
@@ -240,6 +267,22 @@ export class TextureManager {
 
 	}
 
+	_updateMaterialTexture( index, texture ) {
+
+		if ( this.materials[ index ] ) {
+
+			const mat = this.materials[ index ];
+			if ( mat.uniforms && mat.uniforms.cityTexture ) {
+
+				mat.uniforms.cityTexture.value = texture;
+				// mat.needsUpdate = true; // Not strictly needed for uniform value update
+
+			}
+
+		}
+
+	}
+
 	setTextureFromUrl( i, url ) {
 
 		const context = this;
@@ -269,16 +312,13 @@ export class TextureManager {
 		if ( this.textureCache[ url ] ) {
 
 			const cachedTex = this.textureCache[ url ];
-
-			// For compressed textures (loaded via KTX2Loader/DDSLoader), .clone() might not work as expected
-			// because they inherit from CompressedTexture which has different properties.
-			// However, three.js Textures (including compressed) should support clone().
-			// But careful: KTX2Loader returns a CompressedTexture.
-
 			const tex = cachedTex.clone();
 
 			this._configureTexture( tex, i );
 			this.textures[ i ] = tex;
+
+			// Update material immediately if it exists
+			this._updateMaterialTexture( i, tex );
 
 			this.needsUpdate = true;
 			if ( this.onChange ) {
@@ -290,6 +330,22 @@ export class TextureManager {
 			return;
 
 		}
+
+		// Assign singleton placeholder immediately
+		// We can't easily configure the singleton placeholder per texture slot (wrap modes etc) because it's shared.
+		// So we clone it? DataTexture.clone() works.
+		// Or we just use the raw placeholder and don't care about wrap modes until real texture loads.
+		// Let's clone it so we can set wrap modes correctly if needed, although it's just a placeholder.
+		// Actually, if we want correct UV behavior even for placeholder (e.g. repeat), we should clone.
+		const placeholder = this.placeholderTexture.clone();
+		placeholder.name = 'placeholder';
+		this._configureTexture( placeholder, i );
+		this.textures[ i ] = placeholder;
+
+		// Update material immediately if it exists (it likely doesn't yet if this is initial load)
+		this._updateMaterialTexture( i, placeholder );
+
+		this.needsUpdate = true;
 
 		// Choose loader based on extension
 		const extension = url.split( '.' ).pop().toLowerCase();
@@ -309,19 +365,23 @@ export class TextureManager {
 
 		}
 
-		// Load new texture and cache it
-		const tex = loader.load( url, ( loadedTex ) => {
+		// Load new texture
+		loader.load( url, ( loadedTex ) => {
 
-			// For compressed textures, properties like flipY might need adjustment depending on format,
-			// but generally we just use what we get.
+			// Update the texture array
+			context.textures[ i ] = loadedTex;
+			context._configureTexture( loadedTex, i );
 
-			// Compressed textures might not support generateMipmaps = true if they don't have them?
-			// But _configureTexture sets it. KTX2 often has mipmaps.
+			// Update cache
+			context.textureCache[ url ] = loadedTex;
 
-			this.needsUpdate = true;
-			if ( this.onChange ) {
+			// Update material reference
+			context._updateMaterialTexture( i, loadedTex );
 
-				this.onChange();
+			context.needsUpdate = true;
+			if ( context.onChange ) {
+
+				context.onChange();
 
 			}
 
@@ -338,6 +398,10 @@ export class TextureManager {
 			texture.name = 'fallback';
 
 			context.textures[ i ] = texture;
+
+			// Update material reference
+			context._updateMaterialTexture( i, texture );
+
 			context.needsUpdate = true;
 			if ( context.onChange ) {
 
@@ -356,14 +420,6 @@ export class TextureManager {
 			}
 
 		} );
-
-		// Cache immediately
-		this.textureCache[ url ] = tex;
-
-		// Configure instance
-		this._configureTexture( tex, i );
-
-		this.textures[ i ] = tex;
 
 	}
 
@@ -392,6 +448,12 @@ export class TextureManager {
 
 		}
 
+		if ( this.placeholderTexture ) {
+
+			this.placeholderTexture.dispose();
+
+		}
+
 		this.textures = [];
 		this.textureCache = {};
 
@@ -417,7 +479,6 @@ export class TextureManager {
 					const type = texture.type.toLowerCase();
 					const extension = file.name.split( '.' ).pop().toLowerCase();
 
-					// Map common types to extensions
 					const validExtensions = {
 						'png': [ 'png' ],
 						'jpg': [ 'jpg', 'jpeg' ],
@@ -436,6 +497,28 @@ export class TextureManager {
 
 		}
 
+		// Assign placeholder immediately for all matching textures
+		for ( const [ j, t ] of this.cityTextures.entries() ) {
+
+			if ( t.image.includes( file.name ) ) {
+
+				const placeholder = this.placeholderTexture.clone();
+				placeholder.name = 'placeholder';
+				this._configureTexture( placeholder, j );
+				this.textures[ j ] = placeholder;
+				this._updateMaterialTexture( j, placeholder );
+
+			}
+
+		}
+		this.needsUpdate = true;
+		if ( this.onChange ) {
+
+			this.onChange();
+
+		}
+
+
 		const extension = file.name.split( '.' ).pop().toLowerCase();
 
 		// Handle compressed textures from file
@@ -446,9 +529,25 @@ export class TextureManager {
 			if ( extension === 'ktx2' ) loader = this.options.ktx2Loader;
 			else loader = this.options.ddsLoader;
 
-			const masterTex = loader.load( url, () => {
+			const masterTex = loader.load( url, ( loadedTex ) => {
 
 				URL.revokeObjectURL( url );
+
+				loadedTex.name = file.name;
+				this.textureCache[ file.name ] = loadedTex;
+
+				for ( const [ j, t ] of this.cityTextures.entries() ) {
+
+					if ( t.image.includes( file.name ) ) {
+
+						const tex = loadedTex.clone();
+						this._configureTexture( tex, j );
+						this.textures[ j ] = tex;
+						this._updateMaterialTexture( j, tex );
+
+					}
+
+				}
 
 				this.needsUpdate = true;
 				if ( this.onChange ) {
@@ -472,35 +571,10 @@ export class TextureManager {
 
 			} );
 
-			masterTex.name = file.name;
-
-			// Update cache
-			this.textureCache[ file.name ] = masterTex;
-
-			// Assign to all matching textures
-			for ( const [ j, t ] of this.cityTextures.entries() ) {
-
-				if ( t.image.includes( file.name ) ) {
-
-					// Note: Cloning compressed textures might be tricky if not fully loaded yet,
-					// but three.js usually handles it.
-					const tex = masterTex.clone();
-					this._configureTexture( tex, j );
-
-					this.textures[ j ] = tex;
-
-				}
-
-			}
-
 			return;
 
 		}
 
-
-		// Always reload the file if provided by the user, even if cached.
-		// This supports re-uploading modified files with the same name.
-		// The cache will be updated with the new texture.
 
 		let fileReaderStarted = false;
 
@@ -536,10 +610,8 @@ export class TextureManager {
 							const masterTex = new Texture( evt.target );
 							masterTex.name = file.name;
 
-							// Update cache (overwriting if exists)
 							this.textureCache[ file.name ] = masterTex;
 
-							// Now assign to all matching textures
 							for ( const [ j, t ] of this.cityTextures.entries() ) {
 
 								if ( t.image.includes( file.name ) ) {
@@ -548,6 +620,7 @@ export class TextureManager {
 									this._configureTexture( tex, j );
 
 									this.textures[ j ] = tex;
+									this._updateMaterialTexture( j, tex );
 
 								}
 
