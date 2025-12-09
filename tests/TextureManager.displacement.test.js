@@ -32,7 +32,10 @@ describe('Task 4.3: Texture-Based Displacement/Height Maps', () => {
 					wrapMode: 'wrap',
 					related: {
 						displacement: 1
-					}
+					},
+					// Optional custom properties for displacement
+					displacementScale: 2.5,
+					displacementBias: -0.5
 				},
 				{
 					type: 'PNG',
@@ -52,7 +55,7 @@ describe('Task 4.3: Texture-Based Displacement/Height Maps', () => {
 		expect(mat.uniforms).toHaveProperty('cityTextureDisplacementBias');
 	});
 
-	test('TextureManager should assign displacement texture to material', (done) => {
+	test('TextureManager should assign displacement texture and parameters to material', (done) => {
 		const textureManager = new TextureManager(cityModel);
 
 		// Wait for textures to load
@@ -70,6 +73,10 @@ describe('Task 4.3: Texture-Based Displacement/Height Maps', () => {
 			// Check if displacement map is assigned
 			expect(mat.uniforms.cityTextureDisplacement.value).toBeDefined();
 			expect(mat.uniforms.cityTextureDisplacement.value.name).toBe('height.png');
+
+			// Check scale and bias
+			expect(mat.uniforms.cityTextureDisplacementScale.value).toBe(2.5);
+			expect(mat.uniforms.cityTextureDisplacementBias.value).toBe(-0.5);
 
 			// We expect custom defines now
 			expect(mat.defines.USE_CITY_DISPLACEMENTMAP).toBeDefined();

@@ -120,10 +120,17 @@ export class TextureManager {
 							mat.defines.USE_CITY_DISPLACEMENTMAP = '';
 
 							// Check for optional scale/bias
-							// These are not standard CityJSON but we can look for them in userData or specific properties if needed.
-							// For now, we leave them at default (scale=1, bias=0) or let the user set them on the material later.
-							// However, if we want to support them from JSON, we'd need a place to store them.
-							// Let's assume for now they are defaults.
+							if ( cityTex.displacementScale !== undefined ) {
+
+								mat.uniforms.cityTextureDisplacementScale.value = cityTex.displacementScale;
+
+							}
+
+							if ( cityTex.displacementBias !== undefined ) {
+
+								mat.uniforms.cityTextureDisplacementBias.value = cityTex.displacementBias;
+
+							}
 
 						}
 

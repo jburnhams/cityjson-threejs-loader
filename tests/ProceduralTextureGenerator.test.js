@@ -26,7 +26,7 @@ describe( "ProceduralTextureGenerator", () => {
 						return {
 							fillStyle: '',
 							fillRect: jest.fn(),
-							createImageData: () => ( { data: new Array( 400 ) } ),
+							createImageData: ( w, h ) => ( { data: new Uint8ClampedArray( w * h * 4 ) } ),
 							putImageData: jest.fn(),
 						};
 
@@ -43,12 +43,23 @@ describe( "ProceduralTextureGenerator", () => {
 
 	} );
 
-	test( "should generate brick texture", () => {
+	test( "should generate brick texture with correct properties", () => {
 
-		const tex = ProceduralTextureGenerator.generate( "brick", { width: 64, height: 64 } );
+		const params = {
+			width: 64,
+			height: 64,
+			color: '#FF0000',
+			mortarColor: '#00FF00',
+			rows: 5,
+			cols: 5,
+			mortarThickness: 2
+		};
+		const tex = ProceduralTextureGenerator.generate( "brick", params );
+
 		expect( tex ).toBeInstanceOf( CanvasTexture );
 		expect( tex.image.width ).toBe( 64 );
 		expect( tex.image.height ).toBe( 64 );
+		expect( tex.name ).toBe( "brick" );
 
 	} );
 
@@ -56,6 +67,7 @@ describe( "ProceduralTextureGenerator", () => {
 
 		const tex = ProceduralTextureGenerator.generate( "checker", { width: 32, height: 32 } );
 		expect( tex ).toBeInstanceOf( CanvasTexture );
+		expect( tex.name ).toBe( "checker" );
 
 	} );
 
@@ -63,6 +75,7 @@ describe( "ProceduralTextureGenerator", () => {
 
 		const tex = ProceduralTextureGenerator.generate( "noise", { width: 16, height: 16 } );
 		expect( tex ).toBeInstanceOf( CanvasTexture );
+		expect( tex.name ).toBe( "noise" );
 
 	} );
 
@@ -70,6 +83,7 @@ describe( "ProceduralTextureGenerator", () => {
 
 		const tex = ProceduralTextureGenerator.generate( "grid", { width: 100, height: 100 } );
 		expect( tex ).toBeInstanceOf( CanvasTexture );
+		expect( tex.name ).toBe( "grid" );
 
 	} );
 
@@ -85,15 +99,14 @@ describe( "ProceduralTextureGenerator", () => {
 
 	} );
 
-	test( "should parse parameters correctly", () => {
+	test( "should use defaults when params are missing", () => {
 
-		const tex = ProceduralTextureGenerator.generate( "brick", {
-			color: "#FF0000",
-			mortarColor: "#00FF00",
-			rows: 5,
-			cols: 5
-		} );
+		const tex = ProceduralTextureGenerator.generate( "brick" );
+
 		expect( tex ).toBeInstanceOf( CanvasTexture );
+		// Default size is 512x512
+		expect( tex.image.width ).toBe( 512 );
+		expect( tex.image.height ).toBe( 512 );
 
 	} );
 

@@ -348,13 +348,15 @@ Generate procedural textures from CityJSON parameters.
 - Updated `TextureManager.setTextureFromUrl` to intercept URLs starting with `procedural://`.
 - Parses URL parameters (e.g., `procedural://brick?color=#FF0000&rows=10`) to configure the generator.
 - Textures are generated synchronously and cached by their full URL.
-- Added unit tests for the generator and integration tests for TextureManager.
+- Added comprehensive JSDoc comments to `ProceduralTextureGenerator`.
+- Added unit tests for the generator and integration tests for TextureManager, using strict type checking.
 
 **Test Cases:**
 1. Procedural brick, checker, noise, and grid textures generated correctly.
 2. Parameters (colors, dimensions) control appearance.
 3. Invalid procedural types handled gracefully.
 4. Caching ensures efficient reuse of identical procedural definitions.
+5. Noise generation uses proper color value clamping.
 
 ---
 
@@ -377,14 +379,16 @@ Support displacement or height maps for geometric detail.
     - Sample the displacement texture using transformed UV coordinates.
     - Displace the vertex along its normal: `position += normal * (displacement * scale + bias)`.
 - Updated `TextureManager` to recognize `related.displacement` in texture definitions and assign it to the `cityTextureDisplacement` uniform.
-- Added unit tests in `tests/TextureManager.displacement.test.js` verifying the pipeline from CityJSON to Shader uniforms.
+- Implemented support for `displacementScale` and `displacementBias` properties in CityJSON texture objects, allowing per-texture control over displacement strength.
+- Added unit tests in `tests/TextureManager.displacement.test.js` verifying the pipeline from CityJSON to Shader uniforms, including parameter passing.
 
 **Note:** Geometry subdivision (`TriangleParser.js`) was not implemented as it significantly impacts performance and memory. The current implementation relies on the mesh having sufficient vertex density or the user providing pre-subdivided meshes if high-frequency displacement is needed.
 
 **Test Cases:**
 1. Verified that materials receive displacement uniforms.
 2. Verified that `TextureManager` correctly parses and assigns displacement textures.
-3. Verified that the vertex shader contains the displacement logic.
+3. Verified that `displacementScale` and `displacementBias` are correctly read from CityJSON and applied to the material.
+4. Verified that the vertex shader contains the displacement logic.
 
 ---
 
