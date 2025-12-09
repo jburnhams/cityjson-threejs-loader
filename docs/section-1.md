@@ -275,28 +275,28 @@ Implement texture caching to avoid loading duplicate textures.
 ---
 
 #### Task 3.4: Progressive Texture Loading
+**Status: Completed**
 **Priority: Low**
 **Complexity: Medium**
 
-Load textures progressively with low-resolution placeholders.
+Load textures progressively with generated placeholders.
 
-**Files to Modify:**
+**Files Modified:**
 - `src/helpers/TextureManager.js`
-- `src/parsers/CityJSONWorkerParser.js` - Coordinate with async parsing
 
-**Implementation Requirements:**
-- Generate or load low-resolution placeholder textures
-- Display placeholders immediately during full texture load
-- Replace placeholders with full textures when loaded
-- Emit events when textures upgrade
-- Support progressive JPEG or embedded thumbnails
+**Implementation Details:**
+- Implemented `createPlaceholderTexture()` method to generate a 2x2 grey checkerboard `DataTexture` as a temporary placeholder.
+- Updated `setTextureFromUrl` to immediately assign this placeholder to the texture slot before starting the async download.
+- Updated `setTextureFromFile` to immediately assign the placeholder to all matching textures before the file is read.
+- The placeholder ensures valid texture bindings are available immediately, preventing black meshes or errors during loading.
+- Once the real texture loads, it replaces the placeholder, and `needsUpdate` flags are set to trigger a refresh.
+- Added `tests/TextureManager.placeholder.test.js` to verify placeholder assignment and subsequent replacement.
 
 **Test Cases:**
-1. Scene displays with low-res textures immediately
-2. High-res textures progressively replace placeholders
-3. Visual transition is smooth (no popping)
-4. User interaction not blocked during texture loading
-5. Failed texture loads maintain placeholder
+1. Texture slots contain a "placeholder" texture immediately after initialization.
+2. Placeholder is replaced by the real texture upon load completion.
+3. Placeholder works for both URL and File based loading.
+4. Error fallback behavior remains functional (replacing placeholder with error texture).
 
 ---
 

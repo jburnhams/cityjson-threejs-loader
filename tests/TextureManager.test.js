@@ -202,7 +202,16 @@ describe('TextureManager', () => {
              // Reset for file test
              manager.textures = [];
 
-             const file = { name: 'mytexture.png' };
+             // Create a fake File/Blob object
+             // In jsdom environment, File might not be fully functional, but we can use Blob if needed.
+             // Or simply mock the file object to be compatible with our mock FileReader
+
+             // Since we mocked FileReader, we can pass anything, BUT
+             // if we run in a newer jsdom, 'readAsDataURL' might check if argument is Blob.
+             // So we should construct a Blob.
+             const content = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]); // PNG header
+             const file = new Blob([content], { type: 'image/png' });
+             file.name = 'mytexture.png'; // Add name property manually as Blob doesn't have it
 
              // Mock onChange
              manager.onChange = () => {
@@ -580,7 +589,11 @@ describe('TextureManager', () => {
             };
 
             const manager = new TextureManager(citymodel);
-            const file = { name: 'tex1.jpg' };
+
+            // Fix: pass a Blob-like object
+            const content = new Uint8Array([0]);
+            const file = new Blob([content], { type: 'image/jpeg' });
+            file.name = 'tex1.jpg';
 
             // Wait for initial load
              setTimeout(() => {
