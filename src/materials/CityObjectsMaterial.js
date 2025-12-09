@@ -17,6 +17,20 @@ export class CityObjectsMaterial extends CityObjectsBaseMaterial {
 		newShader.vertexShader =
 		ShaderChunk.cityobjectinclude_vertex +
 		newShader.vertexShader.replace(
+			/#include <begin_vertex>/,
+			`
+			#include <begin_vertex>
+			#ifdef TEXTURE_THEME
+				#ifdef USE_CITY_DISPLACEMENTMAP
+					if ( TEXTURE_THEME > -1 ) {
+						vec2 dispUV = ( cityTextureTransform * vec3( TEXTURE_THEME_UV, 1.0 ) ).xy;
+						float d = texture2D( cityTextureDisplacement, dispUV ).x;
+						transformed += normal * ( d * cityTextureDisplacementScale + cityTextureDisplacementBias );
+					}
+				#endif
+			#endif
+			`
+		).replace(
 			/#include <fog_vertex>/,
 			`
 			#include <fog_vertex>

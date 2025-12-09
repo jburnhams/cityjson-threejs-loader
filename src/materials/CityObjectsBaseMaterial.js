@@ -13,6 +13,9 @@ UniformsLib.cityobject = {
 	cityTextureMetalness: { type: 't' },
 	cityTextureAO: { type: 't' },
 	cityTextureEmissive: { type: 't' },
+	cityTextureDisplacement: { type: 't' },
+	cityTextureDisplacementScale: { value: 1 },
+	cityTextureDisplacementBias: { value: 0 },
 	borderColor: { value: new Vector4( 0, 0, 0, 0 ) },
 	useBorderColor: { value: 0 },
 	showLod: { value: - 1 },
@@ -95,6 +98,12 @@ ShaderChunk.cityobjectinclude_vertex = `
 
 			flat out int vTexIndex;
 			varying vec2 vTexUV;
+
+			#ifdef USE_CITY_DISPLACEMENTMAP
+				uniform sampler2D cityTextureDisplacement;
+				uniform float cityTextureDisplacementScale;
+				uniform float cityTextureDisplacementBias;
+			#endif
 
 		#endif
     `;
