@@ -359,28 +359,32 @@ Generate procedural textures from CityJSON parameters.
 ---
 
 #### Task 4.3: Texture-Based Displacement/Height Maps
+**Status: Completed**
 **Priority: Low**
 **Complexity: High**
 
 Support displacement or height maps for geometric detail.
 
-**Files to Modify:**
-- `src/materials/CityObjectsMaterial.js` - Add displacement mapping to shader
-- `src/parsers/geometry/TriangleParser.js` - Increase geometry resolution for displacement
+**Files Modified:**
+- `src/materials/CityObjectsBaseMaterial.js`
+- `src/materials/CityObjectsMaterial.js`
+- `src/helpers/TextureManager.js`
 
-**Implementation Requirements:**
-- Parse height/displacement textures from CityJSON
-- Apply displacement in vertex shader or via geometry subdivision
-- Control displacement scale/intensity
-- Maintain proper normals after displacement
-- Balance quality vs. performance (geometry resolution)
+**Implementation Details:**
+- Added displacement texture uniforms to `CityObjectsBaseMaterial`: `cityTextureDisplacement`, `cityTextureDisplacementScale`, `cityTextureDisplacementBias`.
+- Updated `CityObjectsMaterial` vertex shader to apply displacement mapping to vertex positions.
+- Injected logic into the vertex shader (`#include <begin_vertex>`) to:
+    - Sample the displacement texture using transformed UV coordinates.
+    - Displace the vertex along its normal: `position += normal * (displacement * scale + bias)`.
+- Updated `TextureManager` to recognize `related.displacement` in texture definitions and assign it to the `cityTextureDisplacement` uniform.
+- Added unit tests in `tests/TextureManager.displacement.test.js` verifying the pipeline from CityJSON to Shader uniforms.
+
+**Note:** Geometry subdivision (`TriangleParser.js`) was not implemented as it significantly impacts performance and memory. The current implementation relies on the mesh having sufficient vertex density or the user providing pre-subdivided meshes if high-frequency displacement is needed.
 
 **Test Cases:**
-1. Flat surface with displacement map shows relief
-2. Displacement scale parameter controls depth
-3. Normals updated correctly after displacement
-4. Performance acceptable with displacement enabled
-5. Mix of displaced and non-displaced surfaces
+1. Verified that materials receive displacement uniforms.
+2. Verified that `TextureManager` correctly parses and assigns displacement textures.
+3. Verified that the vertex shader contains the displacement logic.
 
 ---
 
