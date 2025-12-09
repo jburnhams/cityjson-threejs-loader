@@ -146,17 +146,58 @@ export class BaseParser {
 								}
 
 								// Handle multiple indices (array) or single index
-								const textureIndex = data[ 0 ][ 0 ];
-								if ( Array.isArray( textureIndex ) ) {
+								const rawTextureIndex = data[ 0 ][ 0 ];
+								let textureIndex = rawTextureIndex;
+								let allIndices = null;
+
+								if ( Array.isArray( rawTextureIndex ) ) {
 
 									// If we have multiple indices, we just take the first one for now
 									// to maintain compatibility with existing rendering pipeline (which expects scalar).
-									// In a future update, we could expose all indices if needed.
-									return [ theme, { index: textureIndex[ 0 ], uvs, allIndices: textureIndex } ];
+									textureIndex = rawTextureIndex[ 0 ];
+									allIndices = rawTextureIndex;
 
 								}
 
-								return [ theme, { index: textureIndex, uvs } ];
+								// Check for Atlas Texture (Task 2.3)
+								let finalUVs = uvs;
+								let finalIndex = textureIndex;
+
+								if ( this.json.appearance && this.json.appearance.textures ) {
+
+									const texObj = this.json.appearance.textures[ textureIndex ];
+									if ( texObj && texObj.atlasTexture !== undefined && Array.isArray( texObj.atlasRegion ) && texObj.atlasRegion.length === 4 ) {
+
+										// Remap to Atlas
+										// New UV = Original UV * Size + Offset
+										// atlasRegion = [ x, y, w, h ]
+										const region = texObj.atlasRegion;
+
+										// Clone UVs to avoid modifying the original array in this.json
+										finalUVs = [
+											uvs[ 0 ] * region[ 2 ] + region[ 0 ],
+											uvs[ 1 ] * region[ 3 ] + region[ 1 ]
+										];
+
+										// Check if atlasTexture index is valid
+										const atlasIdx = texObj.atlasTexture;
+										if ( this.json.appearance.textures[ atlasIdx ] ) {
+
+											finalIndex = atlasIdx;
+
+										}
+
+									}
+
+								}
+
+								if ( allIndices ) {
+
+									return [ theme, { index: finalIndex, uvs: finalUVs, allIndices: allIndices } ];
+
+								}
+
+								return [ theme, { index: finalIndex, uvs: finalUVs } ];
 
 							}
 
