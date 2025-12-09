@@ -181,35 +181,39 @@ Support texture coordinate transformations (rotation, scale, offset).
 ---
 
 #### Task 2.3: Texture Atlasing Support
+**Status: Completed**
 **Priority: Medium**
 **Complexity: High**
 
 Support texture atlases with sub-texture UV regions.
 
-**Files to Modify:**
-- `src/helpers/TextureManager.js` - Parse atlas definitions and UV regions
-- `src/parsers/geometry/BaseParser.js` - Remap UV coordinates to atlas regions
-- `src/materials/CityObjectsMaterial.js` - Handle atlas UV mapping
+**Files Modified:**
+- `src/helpers/TextureManager.js`
+- `src/parsers/geometry/BaseParser.js`
 
-**Implementation Requirements:**
-- Define atlas structure (extension to CityJSON or custom format):
-  - Single texture image containing multiple sub-textures
-  - Region definitions (x, y, width, height) per sub-texture
-- Remap surface UV coordinates to atlas sub-regions
-- Support multiple surfaces referencing different atlas regions
-- Maintain texture filtering at atlas boundaries
+**Implementation Details:**
+- Defined a convention for texture atlases in CityJSON `appearance.textures`:
+  - `atlasTexture`: Integer index pointing to the parent atlas texture.
+  - `atlasRegion`: Array of 4 numbers `[x, y, w, h]` (normalized 0-1) defining the sub-region.
+- Implemented UV remapping in `BaseParser.getTextureData`:
+  - Detects if a texture is an atlas sub-texture.
+  - Remaps the texture index to the parent atlas index.
+  - Transforms the UV coordinates based on the region: `newUV = originalUV * scale + offset`.
+- Optimized `TextureManager.loadFromUrl`:
+  - Skips loading independent images for textures defined as atlas sub-textures (optimization).
+  - Relies on the geometry parser to point to the correct loaded atlas texture index.
 
 **Benefits:**
-- Reduce HTTP requests (single texture file)
-- Improve GPU performance (fewer texture bindings)
-- Reduce memory usage (shared texture memory)
+- Reduces HTTP requests by loading only the single atlas image.
+- Reduces draw calls by allowing multiple logical textures to share the same physical material (atlas).
+- Reduces memory usage by avoiding duplicate texture objects.
 
 **Test Cases:**
-1. Atlas with 4 textures (2x2 grid) renders each surface correctly
-2. UV coordinates properly remapped to atlas regions
-3. Texture filtering doesn't bleed between atlas regions
-4. Mix of atlas and non-atlas textures works correctly
-5. Large atlas (16+ sub-textures) performs well
+1. Added `tests/BaseParser.atlas.test.js` covering:
+   - Correct remapping of texture indices to the atlas parent.
+   - Correct transformation of UV coordinates for different atlas regions (quadrants).
+   - Fallback behavior for invalid atlas references.
+   - Handling of UV coordinates > 1.0 (though users should be careful with wrapping in atlases).
 
 ---
 

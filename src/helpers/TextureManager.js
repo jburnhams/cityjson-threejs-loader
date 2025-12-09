@@ -428,6 +428,12 @@ export class TextureManager {
 
 		for ( const [ i, texture ] of this.cityTextures.entries() ) {
 
+			if ( texture.atlasTexture !== undefined ) {
+
+				continue;
+
+			}
+
 			this.setTextureFromUrl( i, texture.image );
 
 		}
