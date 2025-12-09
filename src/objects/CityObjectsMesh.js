@@ -151,6 +151,8 @@ export class CityObjectsMesh extends Mesh {
 
 		if ( attributeName in this.geometry.attributes ) {
 
+			this.geometry.clearGroups();
+
 			const textureIds = this.geometry.attributes[ attributeName ].array;
 
 			// Create a lookup of textures
@@ -166,7 +168,7 @@ export class CityObjectsMesh extends Mesh {
 
 		  		return p;
 
-			}, { last: - 1, values: [], indices: [] } );
+			}, { last: - 2, values: [], indices: [] } );
 
 			const baseMaterial = Array.isArray( this.material ) ? this.material[ this.material.length - 1 ] : this.material;
 
@@ -189,9 +191,13 @@ export class CityObjectsMesh extends Mesh {
 
 			}
 
-			const i = indices.length - 1;
+			if ( indices.length > 0 ) {
 
-			this.geometry.addGroup( indices[ i ], this.geometry.attributes.type.array.length - indices[ i ], values[ i ] > - 1 ? values[ i ] : materials.length - 1 );
+				const i = indices.length - 1;
+
+				this.geometry.addGroup( indices[ i ], this.geometry.attributes.type.array.length - indices[ i ], values[ i ] > - 1 ? values[ i ] : materials.length - 1 );
+
+			}
 
 			this.material = materials;
 
@@ -208,6 +214,7 @@ export class CityObjectsMesh extends Mesh {
 		}
 
 		this.material.textureTheme = "undefined";
+		this.geometry.clearGroups();
 
 	}
 
