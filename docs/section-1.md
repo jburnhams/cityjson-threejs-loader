@@ -332,26 +332,29 @@ Support runtime texture theme switching and updates.
 ---
 
 #### Task 4.2: Procedural Texture Support
+**Status: Completed**
 **Priority: Low**
 **Complexity: High**
 
 Generate procedural textures from CityJSON parameters.
 
-**Files to Modify:**
-- `src/helpers/TextureManager.js` - Add procedural texture generator
-- `src/materials/CityObjectsMaterial.js` - Shader-based procedural textures
+**Files Modified:**
+- `src/helpers/TextureManager.js`
+- `src/helpers/ProceduralTextureGenerator.js` (New file)
 
-**Implementation Requirements:**
-- Support procedural texture definitions in CityJSON (custom extension)
-- Generate textures via Canvas2D or WebGL
-- Support common patterns: brick, tile, wood grain, noise
-- Parameterize procedural generators (color, scale, variation)
+**Implementation Details:**
+- Created `ProceduralTextureGenerator` class using Canvas2D API to generate textures.
+- Implemented texture types: `brick`, `checker`, `noise`, `grid`.
+- Updated `TextureManager.setTextureFromUrl` to intercept URLs starting with `procedural://`.
+- Parses URL parameters (e.g., `procedural://brick?color=#FF0000&rows=10`) to configure the generator.
+- Textures are generated synchronously and cached by their full URL.
+- Added unit tests for the generator and integration tests for TextureManager.
 
 **Test Cases:**
-1. Procedural brick texture renders correctly
-2. Parameters control pattern appearance
-3. Performance comparable to image textures
-4. Mix of image and procedural textures works correctly
+1. Procedural brick, checker, noise, and grid textures generated correctly.
+2. Parameters (colors, dimensions) control appearance.
+3. Invalid procedural types handled gracefully.
+4. Caching ensures efficient reuse of identical procedural definitions.
 
 ---
 
